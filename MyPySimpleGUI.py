@@ -1483,8 +1483,8 @@ class _ToolTip:
         """Creates a topoltip window with the tooltip text inside of it."""
         if self.tipwindow:
             return
-        x = self.widget.winfo_rootx() + self.x + DEFAULT_TOOLTIP_OFFSET[0]
-        y = self.widget.winfo_rooty() + self.y + DEFAULT_TOOLTIP_OFFSET[1]
+        x = self.widget.winfo_rootx() + self.x + DEFAULTS.TOOLTIP_OFFSET[0]
+        y = self.widget.winfo_rooty() + self.y + DEFAULTS.TOOLTIP_OFFSET[1]
         self.tipwindow = tk.Toplevel(self.widget)
         # if not sys.platform.startswith('darwin'):
         try:
@@ -3280,7 +3280,7 @@ class Input(_InputElement):
         if ibeam_color is not None:
             try:
                 self._widget.config(insertbackground=ibeam_color)
-            except Exception as e:
+            except Exception:
                 _error_popup_with_traceback('Error setting I-Beam color in set_ibeam_color',
                            'The element has a key:', self.Key,
                             'The color passed in was:', ibeam_color)
@@ -3291,7 +3291,7 @@ class Input(_InputElement):
         if self._justification is not None:
             justification = self._justification
         else:
-            justification = DEFAULT_TEXT_JUSTIFICATION
+            justification = DEFAULTS.TEXT_JUSTIFICATION
         justify = tk.LEFT if justification.startswith('l') else tk.CENTER if justification.startswith('c') else tk.RIGHT
         # anchor = tk.NW if justification == 'left' else tk.N if justification == 'center' else tk.NE
         self.TKEntry = self._widget = tk.Entry(
@@ -5645,7 +5645,7 @@ class StatusBar(Element):
         elif self.toplevel_form.TextJustification is not None:
             justification = self.toplevel_form.TextJustification
         else:
-            justification = DEFAULT_TEXT_JUSTIFICATION
+            justification = DEFAULTS.TEXT_JUSTIFICATION
         justify = tk.LEFT if justification.startswith('l') else tk.CENTER if justification.startswith('c') else tk.RIGHT
         anchor = tk.NW if justification.startswith('l') else tk.N if justification.startswith('c') else tk.NE
         # tktext_label = tk.Label(tk_row_frame, textvariable=stringvar, width=width, height=height,
@@ -6233,7 +6233,7 @@ class Button(Element):
             button_style = ttk.Style()
         if text is not None:
             btext = text
-            if DEFAULT_USE_BUTTON_SHORTCUTS is True:
+            if DEFAULTS.USE_BUTTON_SHORTCUTS is True:
                 pos = btext.find(MENU_SHORTCUT_CHARACTER)
                 if pos != -1:
                     if pos < len(MENU_SHORTCUT_CHARACTER) or btext[pos - len(MENU_SHORTCUT_CHARACTER)] != "\\":
@@ -6495,7 +6495,7 @@ class Button(Element):
             self.Location = (self.row_numb, self.col_numb)
             btext = self.ButtonText
             pos = -1
-            if DEFAULT_USE_BUTTON_SHORTCUTS is True:
+            if DEFAULTS.USE_BUTTON_SHORTCUTS is True:
                 pos = btext.find(MENU_SHORTCUT_CHARACTER)
                 if pos != -1:
                     if pos < len(MENU_SHORTCUT_CHARACTER) or btext[pos - len(MENU_SHORTCUT_CHARACTER)] != "\\":
@@ -6518,7 +6518,7 @@ class Button(Element):
             elif self.toplevel_form.ButtonColor != (None, None) and self.toplevel_form.ButtonColor != COLOR_SYSTEM_DEFAULT:
                 bc = self.toplevel_form.ButtonColor
             else:
-                bc = DEFAULT_BUTTON_COLOR
+                bc = DEFAULTS.BUTTON_COLOR
             tkbutton = self._widget = ttk.Button(self.parent_row_frame, text=btext, width=width)
             if pos != -1:
                 tkbutton.config(underline=pos)
@@ -6846,7 +6846,7 @@ class ButtonMenu(Element):
             height = self.toplevel_form.DefaultButtonElementSize[1]
         if self.ButtonColor != (None, None) and self.ButtonColor != DEFAULTS.BUTTON_COLOR:
             bc = self.ButtonColor
-        elif self.toplevel_form.ButtonColor != (None, None) and self.toplevel_form.ButtonColor != DEFAULT_BUTTON_COLOR:
+        elif self.toplevel_form.ButtonColor != (None, None) and self.toplevel_form.ButtonColor != DEFAULTS.BUTTON_COLOR:
             bc = self.toplevel_form.ButtonColor
         else:
             bc = DEFAULTS.BUTTON_COLOR
@@ -7061,7 +7061,7 @@ class ProgressBar(Element):
         if self.BarColor != (None, None):  # if element has a bar color, use it
             bar_color = self.BarColor
         else:
-            bar_color = DEFAULT_PROGRESS_BAR_COLOR
+            bar_color = DEFAULTS.PROGRESS_BAR_COLOR
         if self.Orientation.lower().startswith('h'):
             base_style_name = ".Horizontal.TProgressbar"
         else:
@@ -9027,7 +9027,7 @@ class Slider(Element):
         if self.Orientation.startswith('v'):
             range_from = self.Range[1]
             range_to = self.Range[0]
-            slider_length += DEFAULT_MARGINS[1] * (self.size[0] * 2)  # add in the padding
+            slider_length += DEFAULTS.MARGINS[1] * (self.size[0] * 2)  # add in the padding
         else:
             range_from = self.Range[0]
             range_to = self.Range[1]
@@ -11601,7 +11601,7 @@ class Window(_Container):
                 icon = CUSTOM_TITLEBAR_ICON
             elif self.titlebar_icon is not None:
                 icon = self.titlebar_icon
-            elif self.WindowIcon == DEFAULT_WINDOW_ICON:
+            elif self.WindowIcon == DEFAULTS.WINDOW_ICON:
                 icon = DEFAULT_BASE64_ICON_16_BY_16
             else:
                 icon = None
@@ -12112,7 +12112,7 @@ class Window(_Container):
         return _BuildResults(self, False, self)
 
     def _start_autoclose_timer(self):
-        duration = DEFAULT_AUTOCLOSE_TIME if self.AutoCloseDuration is None else self.AutoCloseDuration
+        duration = DEFAULTS.AUTOCLOSE_TIME if self.AutoCloseDuration is None else self.AutoCloseDuration
         self.tk_after_id = self.TKroot.after(int(duration * 1000), self._AutoCloseAlarmCallback)
     
     def finalize(self):
@@ -12265,7 +12265,7 @@ class Window(_Container):
             closest_key = self._find_closest_key(key)
             if not silent_on_error:
                 print('** Error looking up your element using the key: ', key, 'The closest matching key: ', closest_key)
-                _error_popup_with_traceback('Key Error', 'Problem finding your key ' + str(key), 'Closest match = ' + str(closest_key), emoji=EMOJI_BASE64_KEY)
+                _error_popup_with_traceback('Key Error', 'Problem finding your key ' + str(key), 'Closest match = ' + str(closest_key), emoji=EMOJI_BASE64.KEY)
                 element = ErrorElement(key=key)
             else:
                 element = None
@@ -13621,13 +13621,13 @@ class Window(_Container):
         """
 
         if not self._is_window_created('Tried Window.set_scaling'):
-            return DEFAULT_SCALING
+            return DEFAULTS.SCALING
         try:
             scaling = self.TKroot.tk.call('tk', 'scaling')
         except Exception as e:
             if not SUPPRESS_ERROR_POPUPS:
                 _error_popup_with_traceback('Window.get_scaling() - tkinter reported error', e)
-            scaling = DEFAULT_SCALING
+            scaling = DEFAULTS.SCALING
 
         return scaling
 
@@ -16856,7 +16856,7 @@ class _DebugWin():
         self.resizable = resizable
         self.blocking = blocking
 
-        win_size = size if size != (None, None) else DEFAULT_DEBUG_WINDOW_SIZE
+        win_size = size if size != (None, None) else DEFAULTS.DEBUG_WINDOW_SIZE
         self.output_element = Multiline(size=win_size, autoscroll=True, auto_refresh=True, reroute_stdout=False if do_not_reroute_stdout else True, echo_stdout_stderr=self.echo_stdout, reroute_stderr=False if do_not_reroute_stdout else True, expand_x=True, expand_y=True, key='-MULTILINE-')
         if no_button:
             self.layout = [[self.output_element]]
@@ -18606,7 +18606,7 @@ def change_look_and_feel(index, *, force=False):
                 else:  # if the same, then use text input on top of input color
                     colors['PROGRESS'] = (colors['TEXT_INPUT'], colors['INPUT'])
         else:
-            colors['PROGRESS'] = DEFAULT_PROGRESS_BAR_COLOR_OFFICIAL
+            colors['PROGRESS'] = DEFAULTS.PROGRESS_BAR_COLOR_OFFICIAL
         # call to change all the colors
         set_options(background_color=colors['BACKGROUND'],
                    text_element_background_color=colors['BACKGROUND'],
@@ -19462,7 +19462,7 @@ def popup_error(*args, title=None, button_color=(None, None), background_color=N
     :return:                    Returns text of the button that was pressed.  None will be returned if user closed window with X
     :rtype:                     str | None | TIMEOUT_KEY
     """
-    tbutton_color = DEFAULT_ERROR_BUTTON_COLOR if button_color == (None, None) else button_color
+    tbutton_color = DEFAULTS.ERROR_BUTTON_COLOR if button_color == (None, None) else button_color
     return popup(*args, title=title, button_type=POPUP_BUTTONS_ERROR, background_color=background_color, text_color=text_color,
                  non_blocking=non_blocking, icon=icon, line_width=line_width, button_color=tbutton_color,
                  auto_close=auto_close,
@@ -22480,7 +22480,7 @@ class _Debugger:
                 col = 0
         if col != 0:
             layout.append(line)
-        layout = [[Text(SYMBOL_X, enable_events=True, key='-EXIT-', font='_ 7')], [Column(layout)]]
+        layout = [[Text(SYMBOLS.X, enable_events=True, key='-EXIT-', font='_ 7')], [Column(layout)]]
 
         Window._read_call_from_debugger = True
         self.popout_window = Window('Floating', layout, alpha_channel=0, no_titlebar=True, grab_anywhere=True,
@@ -22950,7 +22950,7 @@ def __show_previous_upgrade_information():
     if severity_level != 'Critical':
         return
 
-    layout = [[Image(data=EMOJI_BASE64_HAPPY_THUMBS_UP), Text('An upgrade is available & recommended', font='_ 14')],
+    layout = [[Image(data=EMOJI_BASE64.HAPPY_THUMBS_UP), Text('An upgrade is available & recommended', font='_ 14')],
               [Text('It is recommended you upgrade to version {}'.format(recommended_version))],
               [Text(message1, enable_events=True, key='-MESSAGE 1-')],
               [Text(message2, enable_events=True, key='-MESSAGE 2-')],
@@ -23465,7 +23465,7 @@ def main_open_github_issue():
     middle_layout = [
         [Frame('Checklist * (note that you can click the links)', [[checklist_tabgropup]], font=font_frame, key='-CLIST FRAME-', expand_x=True, expand_y=True)],
         [HorizontalSeparator()],
-        [Text(SYMBOL_DOWN + ' If you need more room for details grab the dot and drag to expand', background_color='red', text_color='white')]]
+        [Text(SYMBOLS.DOWN + ' If you need more room for details grab the dot and drag to expand', background_color='red', text_color='white')]]
 
     bottom_layout = [[TabGroup([[Tab('Details *\n', frame_details, pad=(0, 0)),
                                  Tab('SHORT Program\nto duplicate problem *', frame_code, pad=(0, 0)),
@@ -23479,7 +23479,7 @@ def main_open_github_issue():
     layout_pane = Pane([Column(middle_layout), Column(bottom_layout)], key='-PANE-', expand_x=True, expand_y=True)
 
     layout = [
-        [pin(Button(SYMBOL_DOWN, pad=(0, 0), key='-HIDE CLIST-', tooltip='Hide/show upper sections of window')), pin(Column(top_layout, key='-TOP COL-'))],
+        [pin(Button(SYMBOLS.DOWN, pad=(0, 0), key='-HIDE CLIST-', tooltip='Hide/show upper sections of window')), pin(Column(top_layout, key='-TOP COL-'))],
         [layout_pane],
         [Column([[Button('Post Issue'), Button('Create Markdown Only'), Button('Quit')]])]]
 
@@ -23515,7 +23515,7 @@ def main_open_github_issue():
                             'the markdown, copying it to a text file, and then using it later to manually paste into a new issue '
                             '\n'
                             'Are you sure you want to quit?',
-                            image=EMOJI_BASE64_PONDER, keep_on_top=True
+                            image=EMOJI_BASE64.PONDER, keep_on_top=True
                             ) == 'Yes':
                 break
         if event == WIN_CLOSED:
@@ -23531,7 +23531,7 @@ def main_open_github_issue():
             window['-TITLE-'].update('[{}] {}'.format(event, title))
         if event == '-HIDE CLIST-':
             window['-TOP COL-'].update(visible=not window['-TOP COL-'].visible)
-            window['-HIDE CLIST-'].update(text=SYMBOL_UP if window['-HIDE CLIST-'].get_text() == SYMBOL_DOWN else SYMBOL_DOWN)
+            window['-HIDE CLIST-'].update(text=SYMBOLS.UP if window['-HIDE CLIST-'].get_text() == SYMBOLS.DOWN else SYMBOLS.DOWN)
         if event == 'Help':
             _github_issue_help()
         elif event in ('Post Issue', 'Create Markdown Only'):
@@ -24269,7 +24269,7 @@ def main_sdk_help():
     # layout = [[Column(layout, scrollable=True, p=0, expand_x=True, expand_y=True, vertical_alignment='t'), Sizegrip()]]
     layout += [[Button('Exit', size=(15, 1)), Sizegrip()]]
 
-    window = Window('SDK API Call Reference', layout, resizable=True, use_default_focus=False, keep_on_top=True, icon=EMOJI_BASE64_THINK, finalize=True, right_click_menu=MENU_RIGHT_CLICK_EDITME_EXIT)
+    window = Window('SDK API Call Reference', layout, resizable=True, use_default_focus=False, keep_on_top=True, icon=EMOJI_BASE64.THINK, finalize=True, right_click_menu=MENU_RIGHT_CLICK_EDITME_EXIT)
     window['-DOC LINK-'].set_cursor('hand1')
     online_help_link = ''
     ml = window['-ML-']
@@ -24665,7 +24665,7 @@ def main():
                 webbrowser.open_new_tab(r'https://www.buymeacoffee.com/PySimpleGUI')
         elif event in  ('-EMOJI-HEARTS-', '-HEART-', '-PYTHON HEARTS-'):
             popup_scrolled("Oh look!  It's a Udemy discount coupon!", '62A4C02AB0A3DAB34388',
-                           'A personal message from Mike -- thank you so very much for supporting PySimpleGUI!', title='Udemy Coupon', image=EMOJI_BASE64_MIKE, keep_on_top=True)
+                           'A personal message from Mike -- thank you so very much for supporting PySimpleGUI!', title='Udemy Coupon', image=EMOJI_BASE64.MIKE, keep_on_top=True)
         elif event == 'Themes':
             search_string = popup_get_text('Enter a search term or leave blank for all themes', 'Show Available Themes', keep_on_top=True)
             if search_string is not None:
@@ -24680,7 +24680,7 @@ def main():
         elif event == '-HIDE TABS-':
             window['-TAB GROUP COL-'].update(visible=window['-TAB GROUP COL-'].metadata == True)
             window['-TAB GROUP COL-'].metadata = not window['-TAB GROUP COL-'].metadata
-            window['-HIDE TABS-'].update(text=SYMBOL_UP if window['-TAB GROUP COL-'].metadata else SYMBOL_DOWN)
+            window['-HIDE TABS-'].update(text=SYMBOLS.UP if window['-TAB GROUP COL-'].metadata else SYMBOLS.DOWN)
         elif event == 'SDK Reference':
             main_sdk_help()
         elif event == 'Global Settings':
