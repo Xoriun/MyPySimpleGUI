@@ -1522,12 +1522,12 @@ class Element(ABC):
         ('p', 'pad'),
         ('s', 'size'),
         ('default_text', 'default_value'),
-        ('default_value', 'default_value'),
+        # ('default_value', 'default_value'),
         ('combo_value', 'values')
     )
 
     def __init__(self, type, *, size=(None, None), auto_size_text=None, font=None, background_color=None, text_color=None, key=None, pad=None, tooltip=None,
-                 border_width=None, enable_events=None, visible=True, metadata=None, justification='left', expand_x=False, expand_y=False, right_click_menu=None,
+                 border_width=None, enable_events=None, visible=True, metadata=None, justification='left', expand_x=False, expand_y=False, row_span=None, col_span=None, right_click_menu=None,
                  sbar_trough_color=None, sbar_background_color=None, sbar_arrow_color=None, sbar_width=None, sbar_arrow_width=None, sbar_frame_color=None, sbar_relief=None, **kwargs):
         """
         Element base class, only used internally.
@@ -1564,6 +1564,10 @@ class Element(ABC):
         :type expand_x:                     (bool)
         :param expand_y:                    If True the element will automatically expand in the Y direction to fill available space
         :type expand_y:                     (bool)
+        :param row_span:                    Amount of rows to span this element, only effective in for GRID layout type.
+        :type row_span:                     (int)
+        :param col_span:                    Amount of cols to span this element, only effective in for GRID layout type.
+        :type col_span:                     (int)
         :param metadata:                    User metadata that can be set to ANYTHING
         :type metadata:                     (Any)
         :param sbar_trough_color:           Scrollbar color of the trough
@@ -1581,7 +1585,7 @@ class Element(ABC):
         :param sbar_relief:                 Scrollbar relief that will be used for the "thumb" of the scrollbar (the thing you grab that slides). Should be a constant that is defined at starting with "RELIEF_" - RELIEF_RAISED, RELIEF_SUNKEN, RELIEF_FLAT, RELIEF_RIDGE, RELIEF_GROOVE, RELIEF_SOLID
         :type sbar_relief:                  (str)
         """
-        for depricated, current in self.DEPRICATED_PARAMETERS:
+        for depricated, current in self.DEPRICATED_PARAMETERS:  # TODO: split into deprecated and unknown
             if depricated in kwargs:
                 popup_ok(f'The parameter {depricated} is no longer supported and will be ignored!\nUse {current} instead!')
         
@@ -1612,6 +1616,8 @@ class Element(ABC):
         self._justification = justification
         self.expand_x = expand_x
         self.expand_y = expand_y
+        self.row_span = row_span
+        self.col_span = col_span
         self.RightClickMenu = right_click_menu
         self._border_width = border_width
         self.change_submits = self.enable_events = enable_events
@@ -1620,7 +1626,7 @@ class Element(ABC):
         self.parent_frame: tk.BaseWidget = None
         self.parent_form: Element | Window = None
         self.parent_form_for_buttons: Window = None
-        self.ParentContainer = None  # will be a Form, Column, or Frame element # UNBIND
+        self.ParentContainer:None|Container = None  # will be a Form, Column, or Frame element # UNBIND
         self.TextInputDefault = None
         self.Position = (0, 0)  # Default position Row 0, Col 0
         self._background_color = background_color
@@ -1632,13 +1638,13 @@ class Element(ABC):
         self.TKRightClickMenu = None
         self._widget = None  # Set when creating window. Has the main tkinter widget for element
         self.Tearoff = False  # needed because of right click menu code
-        self.parent_row_frame: tk.Frame = None
+        self.tk_parent_frame: tk.Frame = None
         self.metadata = metadata
         self.user_bind_dict = {}  # Used when user defines a tkinter binding using bind method - convert bind string to key modifier
         self.user_bind_event = None  # Used when user defines a tkinter binding using bind method - event data from tkinter
         # self.pad_used = (0, 0)  # the amount of pad used when was inserted into the layout
         self._popup_menu_location = (None, None)
-        self.pack_settings = None
+        self.layout_settings = None
         self.vsb_style_name = None           # ttk style name used for the verical scrollbar if one is attached to element
         self.hsb_style_name = None           # ttk style name used for the horizontal scrollbar if one is attached to element
         self.vsb_style = None                # The ttk style used for the vertical scrollbar if one is attached to element
@@ -1811,7 +1817,7 @@ class Element(ABC):
                 if isinstance(element, Button):
                     if element.BindReturnKey:
                         return element
-                elif isinstance(element, _Container):
+                elif isinstance(element, Container):
                     rc = self._find_return_key_bound_button(element)
                     if rc is not None:
                         return rc
@@ -2149,7 +2155,7 @@ class Element(ABC):
         Use this if you must have all space removed when you are hiding an element, including the row container.
         """
         try:
-            self.parent_row_frame.pack_forget()
+            self.tk_parent_frame.pack_forget()
         except Exception:
             print('Warning, error hiding element row for key =', self.Key)
 
@@ -2160,7 +2166,7 @@ class Element(ABC):
         Note that it will re-appear at the bottom of the window / container, most likely.
         """
         try:
-            self.parent_row_frame.pack()
+            self.tk_parent_frame.pack()
         except Exception:
             print('Warning, error hiding element row for key =', self.Key)
 
@@ -2186,8 +2192,9 @@ class Element(ABC):
 
         if not self._widget_was_created():
             return
-        self.widget.pack(expand=True, fill=fill)
-        self.parent_row_frame.pack(expand=expand_row, fill=fill)
+        # self.widget.pack(expand=True, fill=fill)
+        self.ParentContainer._add_child_to_layout(self)
+        self.tk_parent_frame.pack(expand=expand_row, fill=fill)
         if self.element_frame is not None:
             self.element_frame.pack(expand=True, fill=fill)
 
@@ -2402,9 +2409,9 @@ class Element(ABC):
             popup_error_with_traceback('Screen capture failure', 'You have attempted a screen capture but have not set up a good filename to save to')
         return grab
 
-    def _pack_forget_save_settings(self, alternate_widget=None):
+    def _hide_and_save_layout_settings(self, alternate_widget:None|tk.Widget=None):
         """
-        Performs a pack_forget which will make a widget invisible.
+        Performs a grid_forget/pack_forget which will make a widget invisible.
         This method saves the pack settings so that they can be restored if the element is made visible again
 
         :param alternate_widget:   Widget to use that's different than the one defined in Element._widget. These are usually Frame widgets
@@ -2417,15 +2424,18 @@ class Element(ABC):
         widget = alternate_widget if alternate_widget is not None else self.widget
         # if the widget is already invisible (i.e. not packed) then will get an error
         try:
-            pack_settings = widget.pack_info()
-            self.pack_settings = pack_settings
-            widget.pack_forget()
+            if self.ParentContainer.layout_type == Container.GRID:
+                self.layout_settings = widget.grid_info()
+                widget.grid_forget()
+            else:  # Container.PACK
+                self.layout_settings = widget.pack_info()
+                widget.pack_forget()
         except tk.TclError:
             pass
 
-    def _pack_restore_settings(self, alternate_widget=None):
+    def _restore_layout_settings(self, alternate_widget:None|tk.Widget=None):
         """
-        Restores a previously packated widget which will make it visible again.
+        Restores a previously hidden widget which will make it visible again.
         If no settings were saved, then the widget is assumed to have not been unpacked and will not try to pack it again
 
         :param alternate_widget:   Widget to use that's different than the one defined in Element._widget. These are usually Frame widgets
@@ -2433,12 +2443,15 @@ class Element(ABC):
         """
 
         # if there are no saved pack settings, then assume it hasnb't been packaed before. The request will be ignored
-        if self.pack_settings is None:
+        if self.layout_settings is None:
             return
 
         widget = alternate_widget if alternate_widget is not None else self.widget
         if widget is not None:
-            widget.pack(**self.pack_settings)
+            if self.ParentContainer.layout_type == Container.GRID:
+                widget.grid(**self.layout_settings)
+            else:  # Container.PACK
+                widget.pack(**self.layout_settings)
 
     def update(self, *args, **kwargs):
         """
@@ -2601,35 +2614,43 @@ class Element(ABC):
 
     # Chr0nic
     def test_mouse_hook(self, em):
-        self.parent_frame.unbind_all('<4>')
-        self.parent_frame.unbind_all('<5>')
-        self.parent_frame.unbind_all("<MouseWheel>")
-        self.parent_frame.unbind_all("<Shift-MouseWheel>")
+        self.parent_frame.unbind('<4>')
+        self.parent_frame.unbind('<5>')
+        self.parent_frame.unbind("<MouseWheel>")
+        self.parent_frame.unbind("<Shift-MouseWheel>")
+        # self.parent_frame.unbind_all('<4>')
+        # self.parent_frame.unbind_all('<5>')
+        # self.parent_frame.unbind_all("<MouseWheel>")
+        # self.parent_frame.unbind_all("<Shift-MouseWheel>")
 
     # Chr0nic
     def test_mouse_unhook(self, em):
-        self.parent_frame.bind_all('<4>', self.yscroll_old, add="+")
-        self.parent_frame.bind_all('<5>', self.yscroll_old, add="+")
-        self.parent_frame.bind_all("<MouseWheel>", self.yscroll_old, add="+")
-        self.parent_frame.bind_all("<Shift-MouseWheel>", self.xscroll_old, add="+")
+        self.parent_frame.bind('<4>', self.yscroll_old, add="+")
+        self.parent_frame.bind('<5>', self.yscroll_old, add="+")
+        self.parent_frame.bind("<MouseWheel>", self.yscroll_old, add="+")
+        self.parent_frame.bind("<Shift-MouseWheel>", self.xscroll_old, add="+")
+        # self.parent_frame.bind_all('<4>', self.yscroll_old, add="+")
+        # self.parent_frame.bind_all('<5>', self.yscroll_old, add="+")
+        # self.parent_frame.bind_all("<MouseWheel>", self.yscroll_old, add="+")
+        # self.parent_frame.bind_all("<Shift-MouseWheel>", self.xscroll_old, add="+")
 
     def _add_expansion(self):
-        expand = True
+        self.should_expand = True
         if self.expand_x and self.expand_y:
-            fill = tk.BOTH
-            self.parent_row_frame.row_should_expand = True
-            self.parent_row_frame.row_fill_direction = tk.BOTH
+            self.fill = tk.BOTH
+            self.tk_parent_frame.row_should_expand = True
+            self.tk_parent_frame.row_fill_direction = tk.BOTH
         elif self.expand_x:
-            fill = tk.X
-            self.parent_row_frame.row_fill_direction = tk.X if self.parent_row_frame.row_fill_direction == tk.NONE else tk.BOTH if self.parent_row_frame.row_fill_direction == tk.Y else tk.X
+            self.fill = tk.X
+            self.tk_parent_frame.row_fill_direction = tk.X if self.tk_parent_frame.row_fill_direction == tk.NONE else tk.BOTH if self.tk_parent_frame.row_fill_direction == tk.Y else tk.X
         elif self.expand_y:
-            fill = tk.Y
-            self.parent_row_frame.row_fill_direction = tk.Y if self.parent_row_frame.row_fill_direction == tk.NONE else tk.BOTH if self.parent_row_frame.row_fill_direction == tk.X else tk.Y
-            self.parent_row_frame.row_should_expand = True
+            self.fill = tk.Y
+            self.tk_parent_frame.row_fill_direction = tk.Y if self.tk_parent_frame.row_fill_direction == tk.NONE else tk.BOTH if self.tk_parent_frame.row_fill_direction == tk.X else tk.Y
+            self.tk_parent_frame.row_should_expand = True
         else:
-            fill = tk.NONE
-            expand = False
-        return expand, fill
+            self.fill = tk.NONE
+            self.should_expand = False
+        return self.should_expand, self.fill
     
     def _add_right_click_menu_and_grab(self):
         if self.right_click_menu == MENU_RIGHT_CLICK_DISABLED:
@@ -2717,13 +2738,20 @@ class Element(ABC):
         return self.__getattribute__(new_name)
 
 
-class _Container:
+class Container:
     """
     Class for Elements that can contain other elements.
     
     !! Warning !!
-    Has to be placed before the Element class for inheritance.
+    For inheritance reasons, this has to be placed before the Element class, i.e.
+    ```
+    class NewElementClass(Container, Element):
+        ...
+    ```
     """
+    _current_row = 0
+    _current_col = 0
+
     def __init__(self, *args, element_justification='left', **kwargs):
         """
         :param element_justification: All elements inside the Frame will have this justification 'left', 'right', 'center' are valid values
@@ -2733,7 +2761,27 @@ class _Container:
         if self.rows:
             pass
         self.element_justification = element_justification
+
         super().__init__(*args, **kwargs)
+
+    def _get_layout_type(self) -> str:
+        """Returns the layout type."""
+        if isinstance(self, Window):
+            return self.layout_type
+        elif isinstance(self, Element):
+            return self.toplevel_form.layout_type
+    
+        error_message = 'Container was neither `Element` nor `Window`.'
+        raise RuntimeError(error_message)
+
+    def _add_child_to_layout(self, child:Element):
+        """Adds the provided child Element to this container."""
+        if self._get_layout_type() == Window.GRID:
+            # expand = 'nsew'  # implement streching and default sticky
+            child.widget.grid(column=self._current_col, columnspan=child.col_span, row=self._current_row, rowspan=child.row_span,
+                              padx=child.pad[0], pady=child.pad[1])
+        else:  # Window.PACK
+            child.widget.pack(side=tk.LEFT, padx=child.pad[0], pady=child.pad[1], expand=child.should_expand, fill=child.fill)
 
     # @_timeit
     # @profile
@@ -2752,73 +2800,58 @@ class _Container:
         # WARNING - You can't use print in this function. If the user has rerouted   #
         # stdout then there will be an error saying the window isn't finalized        #
         # --------------------------------------------------------------------------- #
-        for row_num, row in enumerate(self.rows):
-            tk_row_frame = tk.Frame(containing_frame)
-            row_should_expand = False
-            row_fill_direction = tk.NONE
-            tk_row_frame.row_should_expand = False
-            tk_row_frame.row_fill_direction = tk.NONE
+        use_row_frames = self._get_layout_type() == Window.PACK
 
+        for self._current_row, row in enumerate(self.rows):
             if self.element_justification is not None:
                 row_justify = self.element_justification
             else:
                 row_justify = 'l'
 
-            for col_num, element in enumerate(row):
-                element.parent_row_frame = tk_row_frame
-                element.element_frame = None  # for elements that have a scrollbar too
+            if use_row_frames:
+                tk_row_frame = tk.Frame(containing_frame)
+                tk_row_frame.row_should_expand = False
+                tk_row_frame.row_fill_direction = tk.NONE
+
+            for self._current_col, element in enumerate(row):
                 element.parent_frame = containing_frame
+                element.tk_parent_frame = tk_row_frame if use_row_frames else element.parent_frame
                 element.parent_form = self
                 element.parent_form_for_buttons = toplevel_form  # save the button's parent form object
                 element.toplevel_form = toplevel_form
-                element.row_numb= row_num
-                element.col_numb = col_num
+                element.row_numb = self._current_row
+                element.col_numb = self._current_col
 
                 element.pack()
 
                 element.widget.key = element.key
-            
-            # tk_row_frame.grid(row=row_num+2, sticky=tk.NW, padx=DEFAULTS.MARGINS[0])
 
+                self._current_col += 1
+            
             anchor = 'nw'
 
             if row_justify.lower().startswith('c'):
                 anchor = 'n'
-                side = tk.LEFT
             elif row_justify.lower().startswith('r'):
                 anchor = 'ne'
-                side = tk.RIGHT
             elif row_justify.lower().startswith('l'):
                 anchor = 'nw'
-                side = tk.LEFT
-            # elif toplevel_form.ElementJustification.lower().startswith('c'):
-            #     anchor = 'n'
-            #     side = tk.TOP
-            # elif toplevel_form.ElementJustification.lower().startswith('r'):
-            #     anchor = 'ne'
-            #     side = tk.TOP
-            # else:
-            #     anchor = 'nw'
-            #     side = tk.TOP
-
-            # row_should_expand = False
-
-            # if form.RightClickMenu:
-            #     menu = form.RightClickMenu
-            #     top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-            #     AddMenuItem(top_menu, menu[1], form)
-            #     tk_row_frame.bind('<Button-3>', form._RightClickMenuCallback)
-
-            row_fill_direction += tk_row_frame.row_fill_direction
-            if tk.BOTH in row_fill_direction or (tk.X in row_fill_direction and tk.Y in row_fill_direction):
-                row_fill_direction = tk.BOTH
-            else:
-                row_fill_direction = row_fill_direction.replace(tk.NONE, '')
-                if not row_fill_direction:
-                    row_fill_direction = tk.NONE
-            tk_row_frame.pack(side=tk.TOP, anchor=anchor, padx=0, pady=0, expand=row_should_expand or tk_row_frame.row_should_expand, fill=row_fill_direction)
-            if self.background_color is not None and self.background_color != COLOR_SYSTEM_DEFAULT:
-                tk_row_frame.configure(background=self.background_color)
+            
+            if use_row_frames:
+                row_fill_direction = tk.NONE
+                row_fill_direction += tk_row_frame.row_fill_direction
+                if tk.BOTH in row_fill_direction or (tk.X in row_fill_direction and tk.Y in row_fill_direction):
+                    row_fill_direction = tk.BOTH
+                else:
+                    row_fill_direction = row_fill_direction.replace(tk.NONE, '')
+                    if not row_fill_direction:
+                        row_fill_direction = tk.NONE
+                
+                tk_row_frame.pack(side=tk.TOP, anchor=anchor, padx=0, pady=0, expand=tk_row_frame.row_should_expand, fill=row_fill_direction)
+                if self.background_color is not None and self.background_color != COLOR_SYSTEM_DEFAULT:
+                    tk_row_frame.configure(background=self.background_color)
+            
+            self._current_row += 1
 
     def add_row(self, *args):
         """
@@ -3252,10 +3285,10 @@ class Input(_InputElement):
         if select:
             self.TKEntry.select_range(0, 'end')
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # self.TKEntry.pack_forget()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
             # self.TKEntry.pack(padx=self.pad_used[0], pady=self.pad_used[1])
             # self.TKEntry.pack(padx=self.pad_used[0], pady=self.pad_used[1], in_=self.ParentRowFrame)
         if visible is not None:
@@ -3295,7 +3328,7 @@ class Input(_InputElement):
         justify = tk.LEFT if justification.startswith('l') else tk.CENTER if justification.startswith('c') else tk.RIGHT
         # anchor = tk.NW if justification == 'left' else tk.N if justification == 'center' else tk.NE
         self.TKEntry = self._widget = tk.Entry(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             width=self.size[0],
             textvariable=self.tk_string_var,
             bd=self.border_width,
@@ -3327,7 +3360,7 @@ class Input(_InputElement):
         expand, fill = self._add_expansion()
         self.TKEntry.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKEntry.pack_forget()
         if self.Focus is True or (self.toplevel_form.UseDefaultFocus and not self.toplevel_form.FocusSet):
             self.toplevel_form.FocusSet = True
@@ -3530,7 +3563,7 @@ class Combo(_InputElement):
             self.Font = font
             self.tk_combo.configure(font=font)
             self._dropdown_newfont = _font.Font(font=font)
-            self.parent_row_frame.option_add("*TCombobox*Listbox*Font", self._dropdown_newfont)
+            self.tk_parent_frame.option_add("*TCombobox*Listbox*Font", self._dropdown_newfont)
 
 
         # make tcl call to deal with colors for the drop-down formatting
@@ -3543,10 +3576,10 @@ class Combo(_InputElement):
             pass    # going to let this one slide
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # self.TKCombo.pack_forget()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
             # self.TKCombo.pack(padx=self.pad_used[0], pady=self.pad_used[1])
         if visible is not None:
             self._visible = visible
@@ -3628,9 +3661,9 @@ class Combo(_InputElement):
 
         # Strange code that is needed to set the font for the drop-down list
         self._dropdown_newfont = _font.Font(font=self.font)
-        self.parent_row_frame.option_add("*TCombobox*Listbox*Font", self._dropdown_newfont)
+        self.tk_parent_frame.option_add("*TCombobox*Listbox*Font", self._dropdown_newfont)
 
-        self.tk_combo = self._widget = ttk.Combobox(self.parent_row_frame, width=width, textvariable=self.tk_string_var, font=self.font, style=style_name)
+        self.tk_combo = self._widget = ttk.Combobox(self.tk_parent_frame, width=width, textvariable=self.tk_string_var, font=self.font, style=style_name)
 
         # make tcl call to deal with colors for the drop-down formatting
         try:
@@ -3655,7 +3688,7 @@ class Combo(_InputElement):
         expand, fill = self._add_expansion()
         self.tk_combo.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKCombo.pack_forget()
         if self.DefaultValue is not None:
             self.tk_combo.set(self.DefaultValue)
@@ -3768,10 +3801,10 @@ class OptionMenu(_InputElement):
             self.TKOptionMenu['state'] = 'normal'
         self.Disabled = disabled if disabled is not None else self.Disabled
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # self.TKOptionMenu.pack_forget()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
             # self.TKOptionMenu.pack(padx=self.pad_used[0], pady=self.pad_used[1])
         if visible is not None:
             self._visible = visible
@@ -3785,7 +3818,7 @@ class OptionMenu(_InputElement):
         self.tk_string_var = tk.StringVar()
         if self.DefaultValue:
             self.tk_string_var.set(self.DefaultValue)
-        self.TKOptionMenu = self._widget = tk.OptionMenu(self.parent_row_frame, self.tk_string_var, *self.Values)
+        self.TKOptionMenu = self._widget = tk.OptionMenu(self.tk_parent_frame, self.tk_string_var, *self.Values)
         self.TKOptionMenu.config(highlightthickness=0, font=self.font, width=width)
         self.TKOptionMenu['menu'].config(font=self.font)
         self.TKOptionMenu.config(borderwidth=self.border_width)
@@ -3799,7 +3832,7 @@ class OptionMenu(_InputElement):
         expand, fill = self._add_expansion()
         self.TKOptionMenu.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKOptionMenu.pack_forget()
         if self.Disabled is True:
             self.TKOptionMenu['state'] = 'disabled'
@@ -3921,9 +3954,9 @@ class Listbox(_InputElement):
                 except IndexError:
                     warnings.warn('* Listbox Update selection_set failed with index {}*'.format(set_to_index))
         if visible is False:
-            self._pack_forget_save_settings(self.element_frame)
+            self._hide_and_save_layout_settings(self.element_frame)
         elif visible is True:
-            self._pack_restore_settings(self.element_frame)
+            self._restore_layout_settings(self.element_frame)
         if scroll_to_index is not None and len(self.values):
             self.tk_listbox.yview_moveto(scroll_to_index / len(self.values))
         if select_mode is not None:
@@ -4056,7 +4089,7 @@ class Listbox(_InputElement):
             width = max_line_len
         else:
             width = self.size[0]
-        self.element_frame = tk.Frame(self.parent_row_frame)
+        self.element_frame = tk.Frame(self.tk_parent_frame)
 
         self.tk_string_var = tk.StringVar()
         self.tk_listbox = self._widget = tk.Listbox(
@@ -4130,7 +4163,7 @@ class Listbox(_InputElement):
         self.element_frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], fill=fill, expand=expand)
         self.tk_listbox.pack(side=tk.LEFT, fill=fill, expand=expand)
         if self.visible is False:
-            self._pack_forget_save_settings(alternate_widget=self.element_frame)
+            self._hide_and_save_layout_settings(alternate_widget=self.element_frame)
             # element_frame.pack_forget()
         if self.bind_return_key:
             self.tk_listbox.bind('<Return>', self._listbox_select_handler)
@@ -4285,9 +4318,9 @@ class Radio(Element):
         self.Disabled = disabled if disabled is not None else self.Disabled
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
         if visible is not None:
             self._visible = visible
 
@@ -4326,7 +4359,7 @@ class Radio(Element):
         if default_value:  # if this radio is the one selected, set RadVar to match
             self.tk_int_var.set(value)
         self.TKRadio = self._widget = tk.Radiobutton(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             anchor=tk.NW,
             text=self.Text,
             width=width,
@@ -4356,7 +4389,7 @@ class Radio(Element):
         expand, fill = self._add_expansion()
         self.TKRadio.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKRadio.pack_forget()
         if self.tooltip is not None:
             self.TooltipObject = _ToolTip(self.TKRadio, text=self.tooltip, timeout=DEFAULTS.TOOLTIP_TIME)
@@ -4496,9 +4529,9 @@ class Checkbox(Element):
                 self.TKCheckbutton.configure(selectcolor=self.CheckboxBackgroundColor)  # The background of the checkbox
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         if visible is not None:
             self._visible = visible
@@ -4510,7 +4543,7 @@ class Checkbox(Element):
         self.tk_int_var.set(default_value if default_value is not None else 0)
 
         self.TKCheckbutton = self._widget = tk.Checkbutton(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             anchor=tk.NW,
             text=self.Text,
             width=width,
@@ -4538,7 +4571,7 @@ class Checkbox(Element):
         expand, fill = self._add_expansion()
         self.TKCheckbutton.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKCheckbutton.pack_forget()
         if self.tooltip is not None:
             self.TooltipObject = _ToolTip(
@@ -4652,9 +4685,9 @@ class Spin(_InputElement):
         self.Disabled = disabled if disabled is not None else self.Disabled
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
         if visible is not None:
             self._visible = visible
 
@@ -4724,7 +4757,7 @@ class Spin(_InputElement):
         width = 0 if self.auto_size_text else self.size[0]
         self.tk_string_var = tk.StringVar()
         self.TKSpinBox = self._widget = tk.Spinbox(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             values=self.Values,
             textvariable=self.tk_string_var,
             width=width,
@@ -4746,7 +4779,7 @@ class Spin(_InputElement):
         expand, fill = self._add_expansion()
         self.TKSpinBox.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKSpinBox.pack_forget()
         if self.enable_events:
             self.TKSpinBox.configure(command=self._spinbox_select_handler)
@@ -4961,10 +4994,10 @@ class Multiline(_InputElement):
 
 
         if visible is False:
-            self._pack_forget_save_settings(alternate_widget=self.element_frame)
+            self._hide_and_save_layout_settings(alternate_widget=self.element_frame)
             # self.element_frame.pack_forget()
         elif visible is True:
-            self._pack_restore_settings(alternate_widget=self.element_frame)
+            self._restore_layout_settings(alternate_widget=self.element_frame)
             # self.element_frame.pack(padx=self.pad_used[0], pady=self.pad_used[1])
 
         if self.AutoRefresh and self.parent_form_for_buttons:
@@ -5134,7 +5167,7 @@ class Multiline(_InputElement):
     def pack(self):
         width, height = self.size
         bd = self.border_width
-        self.element_frame = tk.Frame(self.parent_row_frame)
+        self.element_frame = tk.Frame(self.tk_parent_frame)  # why, for scrollbar maybe?
 
         # if element.no_scrollbar:
         self.tk_text = self._widget = tk.Text(self.element_frame, width=width, height=height,  bd=bd, font=self.font, relief=RELIEF_SUNKEN)
@@ -5199,7 +5232,7 @@ class Multiline(_InputElement):
         self.widget.pack(side=tk.LEFT, fill=fill, expand=expand)
 
         if self.visible is False:
-            self._pack_forget_save_settings(alternate_widget=self.element_frame)
+            self._hide_and_save_layout_settings(alternate_widget=self.element_frame)
             # element.element_frame.pack_forget()
         else:
             # Chr0nic
@@ -5292,10 +5325,10 @@ class Text(Element):
         if font is not None:
             self.tk_text.configure(font=font)
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # self.TKText.pack_forget()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
             # self.TKText.pack(padx=self.pad_used[0], pady=self.pad_used[1])
         if visible is not None:
             self._visible = visible
@@ -5518,7 +5551,7 @@ class Text(Element):
         self.tk_string_var = tk.StringVar()
         self.tk_string_var.set(str(self.display_text))
         self._widget = tk.Label(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             textvariable=self.tk_string_var,
             width=width,
             height=height,
@@ -5538,9 +5571,10 @@ class Text(Element):
         if self.text_color != COLOR_SYSTEM_DEFAULT and self.text_color is not None:
             self.widget.configure(fg=self.text_color)
         expand, fill = self._add_expansion()
-        self.widget.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
+        # self.widget.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
+        self.ParentContainer._add_child_to_layout(self)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # tktext_label.pack_forget()
         self.tk_text = self.widget
         if self.enable_events:
@@ -5613,10 +5647,10 @@ class StatusBar(Element):
         if font is not None:
             self.TKText.configure(font=font)
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # self.TKText.pack_forget()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
             # self.TKText.pack(padx=self.pad_used[0], pady=self.pad_used[1])
         if visible is not None:
             self._visible = visible
@@ -5651,7 +5685,7 @@ class StatusBar(Element):
         # tktext_label = tk.Label(tk_row_frame, textvariable=stringvar, width=width, height=height,
         #                         justify=justify, bd=border_depth, font=font)
         tktext_label = self.widget = tk.Label(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             textvariable=stringvar,
             width=width,
             height=height,
@@ -5674,7 +5708,7 @@ class StatusBar(Element):
         tktext_label.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], fill=tk.X, expand=True)
         row_fill_direction = tk.X
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # tktext_label.pack_forget()
         self.tk_text = tktext_label
         if self.ClickSubmits:
@@ -6302,9 +6336,9 @@ class Button(Element):
                 self.TKButton.config(highlightthickness=0, image=image, width=width, height=height)
             self.TKButton.image = image
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
         if disabled_button_color != (None, None) and disabled_button_color != COLOR_SYSTEM_DEFAULT:
             if not self.UseTtkButtons:
                 self.TKButton['disabledforeground'] = disabled_button_color[0]
@@ -6372,7 +6406,7 @@ class Button(Element):
                     else:
                         btext = btext.replace('\\'+MENU_SHORTCUT_CHARACTER, MENU_SHORTCUT_CHARACTER)
                         pos = -1
-            tkbutton = self._widget = tk.Button(self.parent_row_frame, text=btext, width=width, height=height, justify=tk.CENTER, bd=self.border_width, font=self.font)
+            tkbutton = self._widget = tk.Button(self.tk_parent_frame, text=btext, width=width, height=height, justify=tk.CENTER, bd=self.border_width, font=self.font)
             if pos != -1:
                 tkbutton.config(underline=pos)
             try:
@@ -6452,7 +6486,7 @@ class Button(Element):
 
             tkbutton.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
             if self.visible is False:
-                self._pack_forget_save_settings()
+                self._hide_and_save_layout_settings()
                 # tkbutton.pack_forget()
             if self.BindReturnKey:
                 self.TKButton.bind('<Return>', self._return_key_handler)
@@ -6519,7 +6553,7 @@ class Button(Element):
                 bc = self.toplevel_form.ButtonColor
             else:
                 bc = DEFAULTS.BUTTON_COLOR
-            tkbutton = self._widget = ttk.Button(self.parent_row_frame, text=btext, width=width)
+            tkbutton = self._widget = ttk.Button(self.tk_parent_frame, text=btext, width=width)
             if pos != -1:
                 tkbutton.config(underline=pos)
             if btype != BUTTON_TYPE_REALTIME:
@@ -6599,7 +6633,7 @@ class Button(Element):
             expand, fill = self._add_expansion()
             tkbutton.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
             if self.visible is False:
-                self._pack_forget_save_settings()
+                self._hide_and_save_layout_settings()
                 # tkbutton.pack_forget()
             if self.BindReturnKey:
                 self.TKButton.bind('<Return>', self._return_key_handler)
@@ -6809,9 +6843,9 @@ class ButtonMenu(Element):
             self.TKButtonMenu.configure(text=button_text)
             self.ButtonText = button_text
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
         if visible is not None:
             self._visible = visible
         if button_color != (None, None) and button_color != COLOR_SYSTEM_DEFAULT:
@@ -6853,7 +6887,7 @@ class ButtonMenu(Element):
         bd = self.border_width
         if self.ItemFont is None:
             self.ItemFont = self.font
-        tkbutton = self._widget = tk.Menubutton(self.parent_row_frame, text=btext, width=width, height=height, justify=tk.LEFT, bd=bd, font=self.font)
+        tkbutton = self._widget = tk.Menubutton(self.tk_parent_frame, text=btext, width=width, height=height, justify=tk.LEFT, bd=bd, font=self.font)
         self.TKButtonMenu = tkbutton
         if bc != (None, None) and bc != COLOR_SYSTEM_DEFAULT and bc[1] != COLOR_SYSTEM_DEFAULT:
             tkbutton.config(foreground=bc[0], background=bc[1])
@@ -6919,7 +6953,7 @@ class ButtonMenu(Element):
         tkbutton.configure(menu=top_menu)
         self.TKMenu = top_menu
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # tkbutton.pack_forget()
         if self.Disabled == True:
             self.TKButton['state'] = 'disabled'
@@ -7026,9 +7060,9 @@ class ProgressBar(Element):
             return False
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         if visible is not None:
             self._visible = visible
@@ -7068,7 +7102,7 @@ class ProgressBar(Element):
             base_style_name = ".Vertical.TProgressbar"
         style_name = _make_ttk_style_name(base_style_name, self, primary_style=True)
         self.TKProgressBar = TKProgressBar(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             self.MaxValue,
             progress_length,
             progress_width,
@@ -7084,7 +7118,7 @@ class ProgressBar(Element):
         expand, fill = self._add_expansion()
         self.TKProgressBar.TKProgressBarForReal.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings(alternate_widget=self.TKProgressBar.TKProgressBarForReal)
+            self._hide_and_save_layout_settings(alternate_widget=self.TKProgressBar.TKProgressBarForReal)
             # element.TKProgressBar.TKProgressBarForReal.pack_forget()
         self._add_right_click_menu_and_grab()
 
@@ -7216,9 +7250,9 @@ class Image(Element):
                 _error_popup_with_traceback('Exception updating Image element', e)
             self.tktext_label.image = image
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         # if everything is set to None, then delete the image
         if filename is None and image is None and visible is None and size == (None, None):
@@ -7352,7 +7386,7 @@ class Image(Element):
                                         'Look in this Window\'s layout for an Image element that has a key of {}'.format(self.Key),
                                         'The error occuring is:', e)
 
-        self.tktext_label = self._widget = tk.Label(self.parent_row_frame, bd=0)
+        self.tktext_label = self._widget = tk.Label(self.tk_parent_frame, bd=0)
 
         if photo is not None:
             if self.size == (None, None) or self.size is None or self.size == self.toplevel_form.DefaultElementSize:
@@ -7371,7 +7405,7 @@ class Image(Element):
         self.tktext_label.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
 
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.tktext_label.pack_forget()
         if self.tooltip is not None:
             self.TooltipObject = _ToolTip(self.tktext_label, text=self.tooltip,
@@ -7419,9 +7453,9 @@ class Canvas(Element):
         if background_color not in (None, COLOR_SYSTEM_DEFAULT):
             self._TKCanvas.configure(background=background_color)
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
         if visible is not None:
             self._visible = visible
 
@@ -7442,9 +7476,9 @@ class Canvas(Element):
     def pack(self):
         width, height = self.size
         if self._TKCanvas is None:
-            self._TKCanvas = tk.Canvas(self.parent_row_frame, width=width, height=height, bd=self.border_depth)
+            self._TKCanvas = tk.Canvas(self.tk_parent_frame, width=width, height=height, bd=self.border_depth)
         else:
-            self._TKCanvas.master = self.parent_row_frame
+            self._TKCanvas.master = self.tk_parent_frame
         self.widget = self._TKCanvas
 
         if self.background_color is not None and self.background_color != COLOR_SYSTEM_DEFAULT:
@@ -7452,7 +7486,7 @@ class Canvas(Element):
         expand, fill = self._add_expansion()
         self._TKCanvas.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element._TKCanvas.pack_forget()
         if self.tooltip is not None:
             self.TooltipObject = _ToolTip(
@@ -7930,9 +7964,9 @@ class Graph(Element):
             self._TKCanvas2.configure(background=background_color)
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         if visible is not None:
             self._visible = visible
@@ -8166,7 +8200,7 @@ class Graph(Element):
         # else:
         #     element._TKCanvas.master = tk_row_frame
         self._TKCanvas2 = self._widget = tk.Canvas(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             width=width,
             height=height,
             bd=self.border_width
@@ -8179,7 +8213,7 @@ class Graph(Element):
             # element._TKCanvas.configure(background=element.background_color, highlightthickness=0)
         self._TKCanvas2.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element._TKCanvas2.pack_forget()
         if self.tooltip is not None:
             self.TooltipObject = _ToolTip(self._TKCanvas2, text=self.tooltip,
@@ -8195,7 +8229,7 @@ class Graph(Element):
 # ---------------------------------------------------------------------- #
 #                           Frame                                        #
 # ---------------------------------------------------------------------- #
-class Frame(_Container, Element):
+class Frame(Container, Element):
     """
     A Frame Element that contains other Elements. Encloses with a line around elements and a text label.
     """
@@ -8279,10 +8313,10 @@ class Frame(_Container, Element):
             return
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # self.TKFrame.pack_forget()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
             # self.TKFrame.pack(padx=self.pad_used[0], pady=self.pad_used[1])
         if value is not None:
             self.TKFrame.config(text=str(value))
@@ -8290,7 +8324,7 @@ class Frame(_Container, Element):
             self._visible = visible
     
     def pack(self):
-        labeled_frame = self._widget = tk.LabelFrame(self.parent_row_frame, text=self.Title, relief=self.Relief)
+        labeled_frame = self._widget = tk.LabelFrame(self.tk_parent_frame, text=self.Title, relief=self.Relief)
         self.TKFrame = labeled_frame
         self._pack_contained_elements(labeled_frame, self.toplevel_form)
         expand, fill = self._add_expansion()
@@ -8310,7 +8344,7 @@ class Frame(_Container, Element):
             labeled_frame.config(width=self.size[0], height=self.size[1])
             labeled_frame.pack_propagate(0)
         if not self.visible:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # labeled_frame.pack_forget()
         if self.background_color != COLOR_SYSTEM_DEFAULT and self.background_color is not None:
             labeled_frame.configure(background=self.background_color,
@@ -8338,7 +8372,7 @@ class VerticalSeparator(Element):
     Column Element if extra height is needed
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # Maybe add color param for text color?
         """
         """
         self.Orientation = 'vertical'  # for now only vertical works
@@ -8351,9 +8385,9 @@ class VerticalSeparator(Element):
 
         _change_ttk_theme(style, self.toplevel_form.TtkTheme)
 
-        if self.color not in (None, COLOR_SYSTEM_DEFAULT):
-            style.configure(style_name, background=self.color)
-        separator = self._widget = ttk.Separator(self.parent_row_frame, orient=self.Orientation, )
+        if self.text_color not in (None, COLOR_SYSTEM_DEFAULT):
+            style.configure(style_name, background=self.text_color)
+        separator = self._widget = ttk.Separator(self.tk_parent_frame, orient=self.Orientation, )
 
         expand, fill = self._add_expansion()
 
@@ -8372,7 +8406,7 @@ class HorizontalSeparator(Element):
     Horizontal Separator Element draws a Horizontal line at the given location.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # Maybe add color param for text color
         """
         """
         self.Orientation = 'horizontal'  # for now only vertical works
@@ -8386,9 +8420,9 @@ class HorizontalSeparator(Element):
 
         _change_ttk_theme(style, self.toplevel_form.TtkTheme)
 
-        if self.color not in (None, COLOR_SYSTEM_DEFAULT):
-            style.configure(style_name, background=self.color)
-        separator = self._widget = ttk.Separator(self.parent_row_frame, orient=self.Orientation, )
+        if self.text_color not in (None, COLOR_SYSTEM_DEFAULT):
+            style.configure(style_name, background=self.text_color)
+        separator = self._widget = ttk.Separator(self.tk_parent_frame, orient=self.Orientation, )
 
         expand, fill = self._add_expansion()
 
@@ -8423,7 +8457,7 @@ class Sizegrip(Element):
 
         _change_ttk_theme(style, self.toplevel_form.TtkTheme)
 
-        size_grip = self._widget = ttk.Sizegrip(self.parent_row_frame)
+        size_grip = self._widget = ttk.Sizegrip(self.tk_parent_frame)
         self.toplevel_form.sizegrip_widget = size_grip
         # if no size is specified, then use the background color for the window
         if self.background_color != COLOR_SYSTEM_DEFAULT:
@@ -8436,13 +8470,13 @@ class Sizegrip(Element):
         # tricky part of sizegrip... it shouldn't cause the row to expand, but should expand and should add X axis if
         # not already filling in that direction.  Otherwise, leaves things alone!
         # row_should_expand = True
-        self.parent_row_frame.row_fill_direction = tk.BOTH if self.parent_row_frame.row_fill_direction in (tk.Y, tk.BOTH) else tk.X
+        self.tk_parent_frame.row_fill_direction = tk.BOTH if self.tk_parent_frame.row_fill_direction in (tk.Y, tk.BOTH) else tk.X
 
 
 # ---------------------------------------------------------------------- #
 #                           Tab                                          #
 # ---------------------------------------------------------------------- #
-class Tab(_Container, Element):
+class Tab(Container, Element):
     """
     Tab Element is another "Container" element that holds a layout and displays a tab with text. Used with TabGroup only
     Tabs are never placed directly into a layout.  They are always "Contained" in a TabGroup layout
@@ -8606,9 +8640,9 @@ class Tab(_Container, Element):
                 width, height = photo.width(), photo.height()
             else:
                 width, height = self.size
-            self.tktext_label = tk.Label(self.parent_row_frame, image=photo, width=width, height=height, bd=0)
+            self.tktext_label = tk.Label(self.tk_parent_frame, image=photo, width=width, height=height, bd=0)
         else:
-            self.tktext_label = tk.Label(self.parent_row_frame, bd=0)
+            self.tktext_label = tk.Label(self.tk_parent_frame, bd=0)
         if photo is not None:
             self.parent_form.TKNotebook.add(self.TKFrame, text=self.Title, compound=tk.LEFT, state=state,image=photo)
 
@@ -8638,7 +8672,7 @@ class Tab(_Container, Element):
 # ---------------------------------------------------------------------- #
 #                           TabGroup                                     #
 # ---------------------------------------------------------------------- #
-class TabGroup(_Container, Element):
+class TabGroup(Container, Element):
     """
     TabGroup Element groups together your tabs into the group of tabs you see displayed in your window
     """
@@ -8822,9 +8856,9 @@ class TabGroup(_Container, Element):
             return
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         if visible is not None:
             self._visible = visible
@@ -8867,7 +8901,7 @@ class TabGroup(_Container, Element):
         style.configure(custom_style + '.Tab', font=self.font)
         self.Style = style
         self.StyleName = custom_style
-        self.TKNotebook = self._widget = ttk.Notebook(self.parent_row_frame, style=custom_style)
+        self.TKNotebook = self._widget = ttk.Notebook(self.tk_parent_frame, style=custom_style)
 
         self._pack_contained_elements(self.toplevel_form.TKroot, self.toplevel_form)
 
@@ -8882,7 +8916,7 @@ class TabGroup(_Container, Element):
             self.TKNotebook.configure(width=self.size[0], height=self.size[1])
         self._add_right_click_menu_and_grab()
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
 
     def _right_click_menu_callback(self, event):
         try:
@@ -8994,9 +9028,9 @@ class Slider(Element):
         self.Disabled = disabled if disabled is not None else self.Disabled
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         if visible is not None:
             self._visible = visible
@@ -9031,7 +9065,7 @@ class Slider(Element):
         else:
             range_from = self.Range[0]
             range_to = self.Range[1]
-        tkscale = self._widget = tk.Scale(self.parent_row_frame, orient=self.Orientation,
+        tkscale = self._widget = tk.Scale(self.tk_parent_frame, orient=self.Orientation,
                                                 variable=self.tk_int_var,
                                                 from_=range_from, to_=range_to, resolution=self.Resolution,
                                                 length=slider_length, width=slider_width,
@@ -9052,7 +9086,7 @@ class Slider(Element):
         expand, fill = self._add_expansion()
         tkscale.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # tkscale.pack_forget()
         self.TKScale = tkscale
         if self.Disabled == True:
@@ -9215,7 +9249,7 @@ class TkScrollableFrame(tk.Frame):
 # ---------------------------------------------------------------------- #
 #                           Column                                       #
 # ---------------------------------------------------------------------- #
-class Column(_Container, Element):
+class Column(Container, Element):
     """
     A container element that is used to create a layout within your window's layout
     """
@@ -9305,13 +9339,13 @@ class Column(_Container, Element):
 
         if visible is False:
             if self.TKColFrame:
-                self._pack_forget_save_settings()
+                self._hide_and_save_layout_settings()
                 # self.TKColFrame.pack_forget()
             if self.ParentPanedWindow:
                 self.ParentPanedWindow.remove(self.TKColFrame)
         elif visible is True:
             if self.TKColFrame:
-                self._pack_restore_settings()
+                self._restore_layout_settings()
                 # self.TKColFrame.pack(padx=self.pad_used[0], pady=self.pad_used[1], fill=expand)
             if self.ParentPanedWindow:
                 self.ParentPanedWindow.add(self.TKColFrame)
@@ -9329,7 +9363,7 @@ class Column(_Container, Element):
     def pack(self):
         if self.Scrollable:
             # ----------------------- SCROLLABLE Column ----------------------
-            self._widget = self.TKColFrame = TkScrollableFrame(self.parent_row_frame, self.VerticalScrollOnly, self, self.toplevel_form)  # do not use yet!  not working
+            self._widget = self.TKColFrame = TkScrollableFrame(self.tk_parent_frame, self.VerticalScrollOnly, self, self.toplevel_form)  # do not use yet!  not working
             self._pack_contained_elements(self.TKColFrame.TKFrame, self.toplevel_form)
             self.TKColFrame.TKFrame.update()
             if self._size == (None, None):  # if no size specified, use column width x column height/2
@@ -9352,7 +9386,7 @@ class Column(_Container, Element):
         else:
             # ----------------------- PLAIN Column ----------------------
             if self._size != (None, None):
-                self.widget = self.TKColFrame = TkFixedFrame(self.parent_row_frame)
+                self.widget = self.TKColFrame = TkFixedFrame(self.tk_parent_frame)
                 self._pack_contained_elements(self.TKColFrame.TKFrame, self.toplevel_form)
                 self.TKColFrame.TKFrame.update()
                 if None not in (self._size[0], self._size[1]):
@@ -9365,7 +9399,7 @@ class Column(_Container, Element):
                     self.TKColFrame.canvas.config(background=self.background_color)
                     self.TKColFrame.TKFrame.config(background=self.background_color, borderwidth=0, highlightthickness=0)
             else:
-                self._widget = self.TKColFrame = tk.Frame(self.parent_row_frame)
+                self._widget = self.TKColFrame = tk.Frame(self.tk_parent_frame)
                 self._pack_contained_elements(self.TKColFrame, self.toplevel_form)
                 if self.background_color not in (None, COLOR_SYSTEM_DEFAULT):
                     self.TKColFrame.config(background=self.background_color, borderwidth=0, highlightthickness=0)
@@ -9416,7 +9450,7 @@ class Column(_Container, Element):
 
         # element.TKColFrame.pack(side=side, padx=elementpad[0], pady=elementpad[1], expand=True, fill='both')
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.TKColFrame.pack_forget()
 
         self._add_right_click_menu_and_grab()
@@ -9428,7 +9462,7 @@ class Column(_Container, Element):
 # ---------------------------------------------------------------------- #
 #                           Pane                                         #
 # ---------------------------------------------------------------------- #
-class Pane(_Container, Element):
+class Pane(Container, Element):
     """
     A sliding Pane that is unique to tkinter.  Uses Columns to create individual panes
     """
@@ -9491,9 +9525,9 @@ class Pane(_Container, Element):
             return
 
         if visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
         elif visible is True:
-            self._pack_restore_settings()
+            self._restore_layout_settings()
 
         if visible is not None:
             self._visible = visible
@@ -9501,7 +9535,7 @@ class Pane(_Container, Element):
     def pack(self):
         bd = self.border_width
         self.PanedWindow = self._widget = tk.PanedWindow(
-            self.parent_row_frame,
+            self.tk_parent_frame,
             orient=tk.VERTICAL if self.Orientation.startswith('v') else tk.HORIZONTAL,
             borderwidth=bd,
             bd=bd,
@@ -9532,7 +9566,7 @@ class Pane(_Container, Element):
         self.PanedWindow.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         # element.PanedWindow.pack(side=tk.LEFT, padx=elementpad[0], pady=elementpad[1], expand=True, fill='both')
         if self.visible is False:
-            self._pack_forget_save_settings()
+            self._hide_and_save_layout_settings()
             # element.PanedWindow.pack_forget()
 
 
@@ -10115,9 +10149,9 @@ class Table(Element):
             self.Values = values
             self.SelectedRows = []
         if visible is False:
-            self._pack_forget_save_settings(self.element_frame)
+            self._hide_and_save_layout_settings(self.element_frame)
         elif visible is True:
-            self._pack_restore_settings(self.element_frame)
+            self._restore_layout_settings(self.element_frame)
 
         if num_rows is not None:
             self.TKTreeview.config(height=num_rows)
@@ -10259,7 +10293,7 @@ class Table(Element):
         return self.last_clicked_position
 
     def pack(self):
-        self.element_frame = frame = tk.Frame(self.parent_row_frame)
+        self.element_frame = frame = tk.Frame(self.tk_parent_frame)
         self.table_frame = frame
         height = self.NumRows
         if self.justification.startswith('l'):
@@ -10453,7 +10487,7 @@ class Table(Element):
         self.TKTreeview.pack(side=tk.LEFT, padx=0, pady=0, expand=expand, fill=fill)
         frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings(alternate_widget=self.element_frame)       # seems like it should be the frame if following other elements conventions
+            self._hide_and_save_layout_settings(alternate_widget=self.element_frame)       # seems like it should be the frame if following other elements conventions
             # element.TKTreeview.pack_forget()
         if self.tooltip is not None:
             self.TooltipObject = _ToolTip(self.TKTreeview, text=self.tooltip,
@@ -10706,9 +10740,9 @@ class Tree(Element):
                     pass
             # item = self.TKTreeview.item(id)
         if visible is False:
-            self._pack_forget_save_settings(self.element_frame)
+            self._hide_and_save_layout_settings(self.element_frame)
         elif visible is True:
-            self._pack_restore_settings(self.element_frame)
+            self._restore_layout_settings(self.element_frame)
 
         if visible is not None:
             self._visible = visible
@@ -10716,7 +10750,7 @@ class Tree(Element):
         return self
 
     def pack(self):
-        self.element_frame = element_frame = tk.Frame(self.parent_row_frame)
+        self.element_frame = element_frame = tk.Frame(self.tk_parent_frame)
 
         height = self.NumRows
         if self.justification.startswith('l'):  # justification
@@ -10882,7 +10916,7 @@ class Tree(Element):
         self.TKTreeview.pack(side=tk.LEFT, padx=0, pady=0, expand=expand, fill=fill)
         element_frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
         if self.visible is False:
-            self._pack_forget_save_settings(alternate_widget=self.element_frame)       # seems like it should be the frame if following other elements conventions
+            self._hide_and_save_layout_settings(alternate_widget=self.element_frame)       # seems like it should be the frame if following other elements conventions
             # element.TKTreeview.pack_forget()
         treeview.bind("<<TreeviewSelect>>", self._treeview_selected)
         if self.tooltip is not None:  # tooltip
@@ -11182,7 +11216,7 @@ class _TimerPeriodic:
 # ------------------------------------------------------------------------- #
 #                       Window CLASS                                        #
 # ------------------------------------------------------------------------- #
-class Window(_Container):
+class Window(Container):
     """
     Represents a single Window
     """
@@ -11213,7 +11247,10 @@ class Window(_Container):
     _watermark_temp_forced = False
     _watermark_user_text = ''
 
-    def __init__(self, title, layout=None, key=None, default_element_size=None,
+    GRID = 'GRID_LAYOUT'
+    PACK = 'PACK_LAYOUT'
+
+    def __init__(self, title, layout=None, layout_type=None, key=None, default_element_size=None,
                  default_button_element_size=(None, None),
                  auto_size_text=None, auto_size_buttons=None, location=(None, None), relative_location=(None, None), size=(None, None),
                  element_padding: None | int | list[int] | list[list[int]] = None, margins=(None, None), button_color=None, font=None,
@@ -11357,6 +11394,10 @@ class Window(_Container):
         :param metadata:                             User metadata that can be set to ANYTHING
         :type metadata:                              (Any)
         """
+        if layout_type is not None and layout_type != Window.PACK:
+            layout_type = Window.PACK
+            popup_error(f'Window.{layout_type} is not supported yet, switching to Window.PACK', title='Layout error')
+        super().__init__()
         self._metadata = None  # type: Any
         self.AutoSizeText = auto_size_text if auto_size_text is not None else DEFAULTS.AUTOSIZE_TEXT
         self.AutoSizeButtons = auto_size_buttons if auto_size_buttons is not None else DEFAULTS.AUTOSIZE_BUTTONS
@@ -11512,6 +11553,13 @@ class Window(_Container):
         if layout is not None and type(layout) not in (list, tuple):
             warnings.warn('Your layout is not a list or tuple... this is not good!')
 
+        if layout_type is None:
+            layout_type = self.PACK
+        if layout_type not in {self.GRID, self.PACK}:
+            error_message = f'{layout_type} is not a valid layout type, only `Container.GRID` and `Container.PACK` are allowed.'
+            raise ValueError(error_message)
+        self.layout_type = layout_type
+        
         if layout is not None:
             self.layout(layout)
             if finalize:
@@ -12316,7 +12364,7 @@ class Window(_Container):
             for element in row:
                 element._build_key_dict(self.AllKeysDict)
 
-    def _BuildKeyDictForWindow(self, window: typing.Self | _Container, key_dict: dict):
+    def _BuildKeyDictForWindow(self, window: typing.Self | Container, key_dict: dict):
         """
         Loop through all Rows and all Container Elements for this window and create the keys for all of them.
         Note that the calls are recursive as all pathes must be walked
@@ -24269,7 +24317,7 @@ def main_sdk_help():
     # layout = [[Column(layout, scrollable=True, p=0, expand_x=True, expand_y=True, vertical_alignment='t'), Sizegrip()]]
     layout += [[Button('Exit', size=(15, 1)), Sizegrip()]]
 
-    window = Window('SDK API Call Reference', layout, resizable=True, use_default_focus=False, keep_on_top=True, icon=EMOJI_BASE64.THINK, finalize=True, right_click_menu=MENU_RIGHT_CLICK_EDITME_EXIT)
+    window = Window('SDK API Call Reference', layout, layout_type=Window.GRID, resizable=True, use_default_focus=False, keep_on_top=True, icon=EMOJI_BASE64.THINK, finalize=True, right_click_menu=MENU_RIGHT_CLICK_EDITME_EXIT)
     window['-DOC LINK-'].set_cursor('hand1')
     online_help_link = ''
     ml = window['-ML-']
@@ -24484,10 +24532,12 @@ def _create_main_window():
 
 
     pop_test_tab_layout = [
-        [Image(data=EMOJI_BASE64.HAPPY_IDEA), Text('Popup tests? Good idea!')],
+        [Image(data=EMOJI_BASE64.HAPPY_IDEA), Text('Popup tests? Good idea!', col_span=3)],
         [Button('Popup', key='P '), Button('No Titlebar', key='P NoTitle'), Button('Not Modal', key='P NoModal'), Button('Non Blocking', key='P NoBlock'), Button('Auto Close', key='P AutoClose')],
-        [Text('"Get" popups too!')],
-        [Button('Get File'), Button('Get Folder'), Button('Get Date'), Button('Get Text')]]
+        [Text('"Get" popups too!', col_span=5)],
+        [Button('Get File'), Button('Get Folder'), Button('Get Date'), Button('Get Text')]
+    ]
+    pop_test_tab_layout = [[Frame(title='test', layout=pop_test_tab_layout)]]
 
     GRAPH_SIZE=(500, 200)
     graph_elem = Graph(canvas_size=GRAPH_SIZE, graph_bottom_left=(0, 0), graph_top_right=GRAPH_SIZE, key='+GRAPH+')
@@ -24564,7 +24614,7 @@ def _create_main_window():
     layout += [[layout_top] + [ProgressBar(max_value=800, size=(20, 25), orientation='v', key='+PROGRESS+')]]
     layout += layout_bottom
 
-    window = Window('PySimpleGUI Main Test Harness', layout,
+    window = Window('PySimpleGUI Main Test Harness', layout, layout_type=Window.PACK,
                     # font=('Helvetica', 18),
                     # background_color='black',
                     right_click_menu=['&Right', ['Right', 'Edit Me', '!&Click', '&Menu', 'E&xit', 'Properties']],
