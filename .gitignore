@@ -1,4 +1,5 @@
 *
-!MyPySimpleGUI.py
-!readme.md
 !.gitignore
+!readme.md
+!ruff.toml
+!*.py

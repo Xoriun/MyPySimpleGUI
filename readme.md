@@ -1,12 +1,12 @@
+## Purpose
+
+This is a rewrite of PySimpleGUI v4.
+
+The aim of this rewrite is to clean up the code, fix some bugs and add some new feature.
+
 # State
 
 This project is very much work in progress and in no way finished.
-
-## Purpose
-
-This is a rewrite of the last fully available version of PySimpleGUI v4.
-
-The aim of this rewrite is to clean up the code, fix some bugs and add some new feature.
 
 ## Changes
 
