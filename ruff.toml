@@ -1,0 +1,22 @@
+target-version = "py314"
+
+[lint]
+select = ["ALL"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|args|kwargs|event|parent)$"
+ignore = ["S311", "E501", "W293", "COM812", "TD002"]
+# to be removed and hence fixed at some point
+extend-ignore = ["PLR0913", "TD003", "Q000", "ERA001", "BLE001", "T201", "PLR0911", "PLR0912", "SLF001", "C901", "PLR0915", "SIM102", "PLW0603", "PLR5501", "ANN", "D", "W291", "S110", "RUF100", "ARG002", "SIM105", "PLR0917", "N802", "PLR2004", "PTH", "DTZ", "S602"]
+
+[lint.per-file-ignores]
+"*_gui.py" = ["ALL"]
+"PySimpleGUI - Copy.py" = ["ALL"]
+
+[lint.extend-per-file-ignores]
+
+[lint.flake8-quotes]
+inline-quotes = "single"
+
+
+[lint.pydocstyle]
+convention = "numpy"
+
