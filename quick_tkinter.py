@@ -266,7 +266,6 @@ def _timeit(func):
 
     return wrapper
 
-
 class TimeIt:
     MAX_TIMEIT_COUNT = 1000
     _timeit_counter = 0
@@ -1047,6 +1046,32 @@ class _ToolTip:
         self.tipwindow = None
 
 
+def _ensure_widget_created(*args, error_return=None):
+    """Decorator to ensure that the widget was created."""
+    
+    def decorator(func):
+
+        @wraps(func)
+        def wrapper(self:Element, *args, **kwargs):
+            if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
+                return error_return
+
+            return func(self, *args, **kwargs)
+
+        return wrapper
+    
+    if len(args) == 1:
+        if callable(args[0]):
+            # called as _ensure_widget_created without args
+            # args[0] is the function that is decorated and should therefore be the arg of decorator
+            return decorator(args[0])
+        
+        err_msg = 'It is invalid to call _ensure_widget_created with positional-only argument.'
+        raise ValueError(err_msg)
+
+    return decorator
+
+
 # ------------------------------------------------------------------------- #
 #                       Element CLASS                                       #
 # ------------------------------------------------------------------------- #
@@ -1520,6 +1545,7 @@ class Element[widget_type: tk.Widget](ABC):
 
         return 'break' if propagate is not True else None
 
+    @_ensure_widget_created
     def bind(self, bind_string, key_modifier, *, propagate=True):
         """
         Used to add tkinter events to an Element.
@@ -1532,9 +1558,6 @@ class Element[widget_type: tk.Widget](ABC):
         :param propagate:    If True then tkinter will be told to propagate the event to the element
         :type propagate:     (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         try:
             self.widget.bind(bind_string, lambda evt: self._user_bind_callback(bind_string, evt, propagate))
         except Exception:
@@ -1543,6 +1566,7 @@ class Element[widget_type: tk.Widget](ABC):
 
         self.user_bind_dict[bind_string] = key_modifier
 
+    @_ensure_widget_created
     def unbind(self, bind_string):
         """
         Removes a previously bound tkinter event from an Element.
@@ -1550,8 +1574,6 @@ class Element[widget_type: tk.Widget](ABC):
         :param bind_string: The string tkinter expected in its bind function
         :type bind_string:  (str)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
         self.widget.unbind(bind_string)
         self.user_bind_dict.pop(bind_string, None)
 
@@ -1569,6 +1591,7 @@ class Element[widget_type: tk.Widget](ABC):
 
         self.tooltip_object = _ToolTip(self.widget, text=tooltip_text, timeout=DEFAULTS.TOOLTIP_TIME)
 
+    @_ensure_widget_created
     def set_focus(self, *, force=False):
         """
         Sets the current focus to be on this element.
@@ -1576,8 +1599,6 @@ class Element[widget_type: tk.Widget](ABC):
         :param force: if True will call focus_force otherwise calls focus_set
         :type force:  bool
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
         try:
             if force:
                 self.widget.focus_force()
@@ -1586,6 +1607,7 @@ class Element[widget_type: tk.Widget](ABC):
         except Exception as e:
             _error_popup_with_traceback("Exception blocking focus. Check your element's Widget", e)
 
+    @_ensure_widget_created
     def block_focus(self, *, block=True):
         """
         Enable or disable the element from getting focus by using the keyboard.
@@ -1597,8 +1619,6 @@ class Element[widget_type: tk.Widget](ABC):
         :param block: if True the element will not get focus via the keyboard
         :type block:  bool
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
         try:
             self.parent_form_for_buttons.TKroot.focus_force()
             if block:
@@ -1608,6 +1628,7 @@ class Element[widget_type: tk.Widget](ABC):
         except Exception as e:
             _error_popup_with_traceback("Exception blocking focus. Check your element's Widget", e)
 
+    @_ensure_widget_created
     def get_next_focus(self):
         """
         Gets the next element that should get focus after this element.
@@ -1615,15 +1636,13 @@ class Element[widget_type: tk.Widget](ABC):
         :return:    Element that will get focus after this one
         :rtype:     (Element)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return None
-
         try:
             next_widget_focus = self.widget.tk_focusNext()
             return self.parent_form_for_buttons.widget_to_element(next_widget_focus)
         except Exception as e:
             _error_popup_with_traceback("Exception getting next focus. Check your element's Widget", e)
 
+    @_ensure_widget_created
     def get_previous_focus(self):
         """
         Gets the element that should get focus previous to this element.
@@ -1631,8 +1650,6 @@ class Element[widget_type: tk.Widget](ABC):
         :return:    Element that should get the focus before this one
         :rtype:     (Element)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return None
         try:
             next_widget_focus = self.widget.tk_focusPrev()      # tkinter._widget
             return self.parent_form_for_buttons.widget_to_element(next_widget_focus)
@@ -1696,6 +1713,7 @@ class Element[widget_type: tk.Widget](ABC):
         except Exception:
             print('Warning, error hiding element row for key =', self.key)
 
+    @_ensure_widget_created
     def expand(self, *, expand_x=False, expand_y=False, expand_row=True):
         """
         Causes the Element to expand to fill available space in the X and Y directions. Can specify which or both directions.
@@ -1716,14 +1734,13 @@ class Element[widget_type: tk.Widget](ABC):
         else:
             return
 
-        if not self._widget_was_created():
-            return
         # self.widget.pack(expand=True, fill=fill)
         self.parent_form._add_child_to_layout(self)
         self.tk_parent_frame.pack(expand=expand_row, fill=fill)
         if self.element_frame is not None:
             self.element_frame.pack(expand=True, fill=fill)
 
+    @_ensure_widget_created
     def set_cursor(self, cursor=None, cursor_color=None):
         """
         Sets the cursor for the current Element.
@@ -1737,8 +1754,6 @@ class Element[widget_type: tk.Widget](ABC):
         :param cursor_color: color to set the "cursor" to
         :type cursor_color:  (str)
         """
-        if not self._widget_was_created():
-            return
         if cursor is not None:
             try:
                 self.widget.config(cursor=cursor)
@@ -1965,6 +1980,7 @@ class Element[widget_type: tk.Widget](ABC):
             else:  # Window.PACK
                 widget.pack(**self.layout_settings)
 
+    @_ensure_widget_created
     def update(self, **kwargs) -> bool:
         """
         A dummy update call.  This will only be called if an element hasn't implemented an update method
@@ -1974,9 +1990,6 @@ class Element[widget_type: tk.Widget](ABC):
         If you call update, you must call window.refresh if you want the change to happen prior to your next
         window.read() call. Normally uou don't do this as the window.read call is likely going to happen next.
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return False
-
         if self._this_elements_window_closed():
             # _error_popup_with_traceback('Error in Multiline.update - The window was closed')
             return False
@@ -1993,11 +2006,9 @@ class Element[widget_type: tk.Widget](ABC):
         
         return True
 
+    @_ensure_widget_created
     def _update_single(self, key:str, value):
         """Updates a single property of the underlying widget."""
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback(f'Cannot update {type(self)} when enclosing window was closed!')
             return
@@ -2902,6 +2913,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
         return self._disabled_readonly_text_color if self._disabled_readonly_text_color not in {None, COLOR_SYSTEM_DEFAULT} else self.text_color
 
 
+    @_ensure_widget_created
     def set_ibeam_color(self, ibeam_color=None):
         """
         Sets the color of the I-Beam that is used to "insert" characters. This is oftens called a "Cursor" by
@@ -2910,9 +2922,6 @@ class Input(_InputElementReadonlyable[tk.Entry]):
         :param ibeam_color: color to set the "I-Beam" used to indicate where characters will be inserted
         :type ibeam_color:  (str)
         """
-
-        if not self._widget_was_created():
-            return
         if ibeam_color is not None:
             try:
                 self._widget.config(insertbackground=ibeam_color)
@@ -3409,6 +3418,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
 
         super().__init__(**kwargs)
 
+    @_ensure_widget_created
     def update(self, value=None, values=None, disabled=None, visible=None, size=(None, None)):
         """
         Changes some of the settings for the OptionMenu Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -3430,9 +3440,6 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
         :param size:     (width, height) size in characters (wide), height is ignored and present to be consistent with other elements
         :type size:      (int, int) (width, UNUSED)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in OptionMenu.update - The window was closed')
             return
@@ -3691,6 +3698,7 @@ class Listbox(_InputElement[tk.Listbox]):
         except IndexError:
             return []
     
+    @_ensure_widget_created
     def select_index(self, index, highlight_text_color=None, highlight_background_color=None):
         """
         Selects an index while providing capability to setting the selected color for the index to specific text/background color
@@ -3702,10 +3710,6 @@ class Listbox(_InputElement[tk.Listbox]):
         :param highlight_background_color: color of the background when this item is selected
         :type  highlight_background_color:  (str)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Listbox.select_item - The window was closed')
             return
@@ -3721,6 +3725,7 @@ class Listbox(_InputElement[tk.Listbox]):
         if highlight_background_color is not None:
             self.widget.itemconfig(index, selectbackground=highlight_background_color)
 
+    @_ensure_widget_created
     def set_index_color(self, index, text_color=None, background_color=None, highlight_text_color=None, highlight_background_color=None):
         """
         Sets the color of a specific item without selecting it
@@ -3736,10 +3741,6 @@ class Listbox(_InputElement[tk.Listbox]):
         :param highlight_background_color: color of the background when this item is selected
         :type  highlight_background_color: (str)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Listbox.set_item_color - The window was closed')
             return
@@ -3904,6 +3905,7 @@ class Radio(Element[tk.Radiobutton]):
 
         super().__init__(text_color=text_color, background_color=background_color, **kwargs)
 
+    @_ensure_widget_created
     def update(self, value=None, text=None, background_color=None, text_color=None, circle_color=None, disabled=None, visible=None):
         """
         Changes some of the settings for the Radio Button Element. Must call `Window.read` or `Window.finalize` prior
@@ -3929,10 +3931,6 @@ class Radio(Element[tk.Radiobutton]):
         :param visible:          control visibility of element
         :type visible:           (bool)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Radio.update - The window was closed')
             return
@@ -4122,6 +4120,7 @@ class Checkbox(Element[tk.Checkbutton]):
         """
         return bool(self.tk_int_var.get())
     
+    @_ensure_widget_created
     def update(self, value=None, text=None, background_color=None, text_color=None, checkbox_color=None, disabled=None, visible=None):
         """
         Changes some of the settings for the Checkbox Element. Must call `Window.Read` or `Window.Finalize` prior.
@@ -4146,10 +4145,6 @@ class Checkbox(Element[tk.Checkbutton]):
         :param visible:          control visibility of element
         :type visible:           (bool)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Checkbox.update - The window was closed')
             return
@@ -4345,6 +4340,7 @@ class Spin(_InputElement[tk.Spinbox]):
         self.parent_form_for_buttons.FormRemainedOpen = True
         _exit_mainloop(self.parent_form_for_buttons)
 
+    @_ensure_widget_created
     def set_ibeam_color(self, ibeam_color=None):
         """
         Sets the color of the I-Beam that is used to "insert" characters.
@@ -4354,8 +4350,6 @@ class Spin(_InputElement[tk.Spinbox]):
         :param ibeam_color: color to set the "I-Beam" used to indicate where characters will be inserted
         :type ibeam_color:  (str)
         """
-        if not self._widget_was_created():
-            return
         if ibeam_color is not None:
             try:
                 self._widget.config(insertbackground=ibeam_color)
@@ -4752,6 +4746,7 @@ class Multiline(_InputElement[tk.Text]):
         """
         return
 
+    @_ensure_widget_created
     def set_ibeam_color(self, ibeam_color=None):
         """
         Sets the color of the I-Beam that is used to "insert" characters. This is oftens called a "Cursor" by
@@ -4760,9 +4755,6 @@ class Multiline(_InputElement[tk.Text]):
         :param ibeam_color: color to set the "I-Beam" used to indicate where characters will be inserted
         :type ibeam_color:  (str)
         """
-
-        if not self._widget_was_created():
-            return
         if ibeam_color is not None:
             try:
                 self._widget.config(insertbackground=ibeam_color)
@@ -4907,6 +4899,7 @@ class Text(Element[tk.Text]):
 
         super().__init__(**kwargs)  # TODO: special default text/bg colors
 
+    @_ensure_widget_created
     def update(self, value=None, background_color=None, text_color=None, font=None, visible=None, tooltip=None):
         """
         Changes some of the settings for the Text Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -4928,10 +4921,6 @@ class Text(Element[tk.Text]):
         :param visible:          set visibility state of the element
         :type visible:           (bool)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Text.update - The window was closed')
             return
@@ -5219,6 +5208,7 @@ class StatusBar(Element[tk.Label]):
 
         super().__init__(**kwargs)  # TODO: special default text/bg colors
 
+    @_ensure_widget_created
     def update(self, value=None, background_color=None, text_color=None, font=None, visible=None):
         """
         Changes some of the settings for the Status Bar Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -5240,10 +5230,6 @@ class StatusBar(Element[tk.Label]):
         :param visible:          set visibility state of the element
         :type visible:           (bool)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in StatusBar.update - The window was closed')
             return
@@ -5813,6 +5799,7 @@ class Button(Element[tk.Button | ttk.Button]):
 
         return
 
+    @_ensure_widget_created
     def update(self, text=None, button_color=(None, None), disabled=None, image_source=None, image_data=None, image_filename=None,
                visible=None, image_subsample=None, image_zoom=None, disabled_button_color=(None, None), image_size=None):
         """
@@ -5847,10 +5834,6 @@ class Button(Element[tk.Button | ttk.Button]):
         :param image_size:            Size of the image in pixels (width, height)
         :type image_size:             (int, int)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Button.update - The window was closed')
             return
@@ -6531,7 +6514,7 @@ class ButtonMenu(Element[tk.Menubutton]):
         self.parent_form_for_buttons.FormRemainedOpen = True
         _exit_mainloop(self.parent_form_for_buttons)
 
-
+    @_ensure_widget_created
     def update(self, menu_definition=None, visible=None, image_source=None, image_size=(None, None), image_subsample=None, image_zoom=None, button_text=None, button_color=None):
         """
         Changes some of the settings for the ButtonMenu Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -6559,10 +6542,6 @@ class ButtonMenu(Element[tk.Menubutton]):
         :param button_color:    Normally a tuple, but can be a simplified-button-color-string "foreground on background". Can be a single color if want to set only the background.
         :type button_color:     (str, str) | str
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in ButtonMenu.update - The window was closed')
             return
@@ -6831,6 +6810,7 @@ class ProgressBar(Element):
             return False
         return True
 
+    @_ensure_widget_created
     def update(self, current_count=None, max_value=None, bar_color=None, visible=None):
         """
         Changes some of the settings for the ProgressBar Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -6853,9 +6833,6 @@ class ProgressBar(Element):
         :return:              Returns True if update was OK.  False means something wrong with window or it was closed
         :rtype:               (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return False
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in ProgressBar.update - The window was closed')
             return False
@@ -6974,6 +6951,7 @@ class Image(Element[tk.Label]):
 
         super().__init__(**kwargs)
 
+    @_ensure_widget_created
     def update(self, source=None, filename=None, data=None, size=(None, None), subsample=None, zoom=None, visible=None):
         """
         Changes some of the settings for the Image Element. Must call `Window.Read` or `Window.Finalize` prior.
@@ -7001,10 +6979,6 @@ class Image(Element[tk.Label]):
         :param visible:  control visibility of element
         :type visible:   (bool)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Image.update - The window was closed')
             return
@@ -7230,6 +7204,7 @@ class Canvas(Element[tk.Canvas]):
 
         super().__init__(**kwargs)
 
+    @_ensure_widget_created
     def update(self,  background_color=None, visible=None):
         """
 
@@ -7238,10 +7213,6 @@ class Canvas(Element[tk.Canvas]):
         :param visible:          set visibility state of the element
         :type visible:           (bool)
         """
-
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Canvas.update - The window was closed')
             return
@@ -7716,6 +7687,7 @@ class Graph(Element[tk.Canvas]):
         except Exception:
             pass
 
+    @_ensure_widget_created
     def update(self, background_color=None, visible=None):
         """
         Changes some of the settings for the Graph Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -7731,9 +7703,6 @@ class Graph(Element[tk.Canvas]):
         :param visible:          control visibility of element
         :type visible:           (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Graph.update - The window was closed')
             return
@@ -8072,6 +8041,7 @@ class Frame(Container, Element[tk.Frame]):
 
         super().__init__(text_color=title_color, layout=layout, **kwargs)
 
+    @_ensure_widget_created
     def update(self, value=None, visible=None):
         """
         Changes some of the settings for the Frame Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -8087,9 +8057,6 @@ class Frame(Container, Element[tk.Frame]):
         :param visible: control visibility of element
         :type visible:  (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Frame.update - The window was closed')
             return
@@ -8290,6 +8257,7 @@ class Tab(Container, Element[tk.Frame]):
 
         super().__init__(text_color=title_color, layout=layout, **kwargs)
 
+    @_ensure_widget_created
     def update(self, title=None, disabled=None, visible=None):
         """
         Changes some of the settings for the Tab Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -8307,9 +8275,6 @@ class Tab(Container, Element[tk.Frame]):
         :param visible:  control visibility of element
         :type visible:   (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return False
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Tab.update - The window was closed')
             return False
@@ -8608,6 +8573,7 @@ class TabGroup(Container, Element[ttk.Notebook]):
             tab_element.TooltipObject = _ToolTip(tab_element.TKFrame, text=tab_element.Tooltip, timeout=DEFAULTS.TOOLTIP_TIME)
         _add_right_click_menu(tab_element, form)
 
+    @_ensure_widget_created
     def update(self, visible=None):
         """
         Enables changing the visibility
@@ -8615,9 +8581,6 @@ class TabGroup(Container, Element[ttk.Notebook]):
         :param visible:  control visibility of element
         :type visible:   (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in TabGroup.update - The window was closed')
             return
@@ -8752,6 +8715,7 @@ class Slider(Element[tk.Scale]):
 
         super().__init__(size=size, background_color=background_color, **kwargs)
 
+    @_ensure_widget_created
     def update(self, value=None, range=(None, None), disabled=None, visible=None):
         """
         Changes some of the settings for the Slider Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -8771,9 +8735,6 @@ class Slider(Element[tk.Scale]):
         :param visible:  control visibility of element
         :type visible:   (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Slider.update - The window was closed')
             return
@@ -9042,6 +9003,7 @@ class Column(Container, Element[tk.Frame]):
 
         super().__init__(layout=layout, **kwargs)
 
+    @_ensure_widget_created
     def update(self, visible=None):
         """
         Changes some of the settings for the Column Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -9055,9 +9017,6 @@ class Column(Container, Element[tk.Frame]):
         :param visible: control visibility of element
         :type visible:  (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Column.update - The window was closed')
             return
@@ -9202,6 +9161,7 @@ class Pane(Container, Element[tk.PanedWindow]):
 
         super().__init__(layout=rows, **kwargs)
 
+    @_ensure_widget_created
     def update(self, visible=None):
         """
         Changes some of the settings for the Pane Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -9215,9 +9175,6 @@ class Pane(Container, Element[tk.PanedWindow]):
         :param visible: control visibility of element
         :type visible:  (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Pane.update - The window was closed')
             return
@@ -9566,6 +9523,7 @@ class Menu(Element[tk.Menu]):
         self.parent_form_for_buttons.FormRemainedOpen = True
         _exit_mainloop(self.parent_form_for_buttons)
 
+    @_ensure_widget_created
     def update(self, menu_definition=None, visible=None):
         """
         Update a menubar - can change the menu definition and visibility.  The entire menu has to be specified
@@ -9581,9 +9539,6 @@ class Menu(Element[tk.Menu]):
         :param visible:         control visibility of element
         :type visible:          (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Menu.update - The window was closed')
             return
@@ -9828,6 +9783,7 @@ class Table(Element[ttk.Treeview]):
 
         super().__init__(justification=justification, **kwargs)
 
+    @_ensure_widget_created
     def update(self, values=None, *, num_rows=None, visible=None, select_rows=None, alternating_row_color=None, row_colors=None):
         """
         Changes some of the settings for the Table Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -9851,9 +9807,6 @@ class Table(Element[ttk.Treeview]):
         :param row_colors:            list of tuples of (row, background color) OR (row, foreground color, background color). Changes the colors of listed rows to the color(s) provided (note the optional foreground color)
         :type row_colors:             List[Tuple[int, str] | Tuple[Int, str, str]]
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Table.update - The window was closed')
             return
@@ -9952,7 +9905,7 @@ class Table(Element[ttk.Treeview]):
             self.parent_form_for_buttons.FormRemainedOpen = True
             _exit_mainloop(self.parent_form_for_buttons)
 
-
+    @_ensure_widget_created
     def _table_clicked(self, event):
         """
         Not user callable.  Callback function that is called a click happens on a table.
@@ -9961,8 +9914,6 @@ class Table(Element[ttk.Treeview]):
         :param event: event information from tkinter
         :type event:  (unknown)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
         # popup(obj_to_string_single_obj(event))
         try:
             region = self._widget.identify('region', event.x, event.y)
@@ -10606,6 +10557,7 @@ class Tree(Element[ttk.Treeview]):
         for _node in node.children:
             self.add_treeview_data(_node)
 
+    @_ensure_widget_created
     def update(self, values=None, *, key=None, value=None, text=None, icon=None, visible=None):
         """
         Changes some of the settings for the Tree Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -10629,9 +10581,6 @@ class Tree(Element[ttk.Treeview]):
         :param visible: control visibility of element
         :type visible:  (bool)
         """
-        if not self._widget_was_created():  # if widget hasn't been created yet, then don't allow
-            return
-
         if self._this_elements_window_closed():
             _error_popup_with_traceback('Error in Tree.update - The window was closed')
             return
