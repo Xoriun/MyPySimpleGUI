@@ -1,8 +1,21 @@
 
 
-from quick_tkinter import Window, Image, Column, Text, Button, Push, Sizegrip, Multiline, textwrap
-from quick_tkinter import POPUP_BUTTONS_CANCELLED, POPUP_BUTTONS_OK, POPUP_BUTTONS_YES_NO, POPUP_BUTTONS_ERROR, POPUP_BUTTONS_OK_CANCEL, POPUP_BUTTONS_NO_BUTTONS
-from quick_tkinter import DummyButton, DEFAULTS, MAX_SCROLLED_TEXT_BOX_HEIGHT, MESSAGE_BOX_LINE_WIDTH, _GetNumLinesNeeded
+from quick_tkinter import (
+    DEFAULTS,
+    MAX_SCROLLED_TEXT_BOX_HEIGHT,
+    MESSAGE_BOX_LINE_WIDTH,
+    Button,
+    Column,
+    DummyButton,
+    Image,
+    Multiline,
+    Push,
+    Sizegrip,
+    Text,
+    Window,
+    _GetNumLinesNeeded,
+    textwrap,
+)
 
 # MM"""""""`YM
 # MM  mmmmm  M
@@ -16,6 +29,14 @@ from quick_tkinter import DummyButton, DEFAULTS, MAX_SCROLLED_TEXT_BOX_HEIGHT, M
 # =====================================   Upper PySimpleGUI ======================================================== #
 # ------------------------------------------------------------------------------------------------------------------ #
 # ----------------------------------- The mighty Popup! ------------------------------------------------------------ #
+
+# -------------------------  Popup Buttons Types  ------------------------- #
+POPUP_BUTTONS_YES_NO = 1
+POPUP_BUTTONS_CANCELLED = 2
+POPUP_BUTTONS_ERROR = 3
+POPUP_BUTTONS_OK_CANCEL = 4
+POPUP_BUTTONS_OK = 0
+POPUP_BUTTONS_NO_BUTTONS = 5
 
 def popup(*args, title=None, button_color=None, background_color=None, text_color=None, button_type=POPUP_BUTTONS_OK, auto_close=False,
           auto_close_duration=None, custom_text=(None, None), non_blocking=False, icon=None, line_width=None, font=None, no_titlebar=False, grab_anywhere=False,

@@ -4,9 +4,29 @@ import inspect
 import sys
 import traceback
 
-from quick_tkinter import Window, Text, TabGroup, Tab, Frame, Input, Button, Multiline, Checkbox, VerticalSeparator, Column
-from quick_tkinter import theme, theme_button_color, popup_quick_message
-from quick_tkinter import popup_scrolled, popup_yes_no, Ok, Cancel, SYMBOLS, obj_to_string_single_obj
+from quick_tkinter import (
+    SYMBOLS,
+    Button,
+    Cancel,
+    Checkbox,
+    Column,
+    Frame,
+    Input,
+    Multiline,
+    Ok,
+    Tab,
+    TabGroup,
+    Text,
+    VerticalSeparator,
+    Window,
+    obj_to_string_single_obj,
+    popup_quick_message,
+    popup_scrolled,
+    popup_yes_no,
+    theme,
+    theme_button_color,
+)
+
 
 class _Debugger:
     debugger = None
@@ -88,7 +108,7 @@ class _Debugger:
                   [TabGroup([[Tab('Variables', col1), Tab('REPL & Watches', col2)]])]]
 
         # ------------------------------- Create main window -------------------------------
-        window = Window("PySimpleGUI Debugger", layout, icon=PSG_DEBUGGER_LOGO, margins=(0, 0), location=location, keep_on_top=True, right_click_menu=[[''], ['Exit', ]])
+        window = Window("PySimpleGUI Debugger", layout, icon=PSG_DEBUGGER_LOGO, margins=(0, 0), location=location, keep_on_top=True, right_click_menu=[[''], ['Exit']])
 
         Window._read_call_from_debugger = True
         window.finalize()

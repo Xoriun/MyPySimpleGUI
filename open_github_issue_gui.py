@@ -1,13 +1,40 @@
 
-import sys
-import webbrowser
-import urllib
-import platform
 
-from quick_tkinter import Text, Radio, Input, Checkbox, TabGroup, Tab, Column, Multiline, Button, Frame, Pane, Window, HorizontalSeparator, vtop, pin
-from quick_tkinter import SYMBOLS, WINDOW_CLOSE_ATTEMPTED_EVENT, EMOJI_BASE64
-from quick_tkinter import popup_yes_no, popup_error, popup
-from quick_tkinter import ver, tclversion_detailed, running_windows, running_linux, running_mac, WIN_CLOSED
+import platform
+import sys
+import urllib
+import webbrowser
+
+from quick_tkinter import (
+    EMOJI_BASE64,
+    SYMBOLS,
+    WIN_CLOSED,
+    WINDOW_CLOSE_ATTEMPTED_EVENT,
+    Button,
+    Checkbox,
+    Column,
+    Frame,
+    HorizontalSeparator,
+    Input,
+    Multiline,
+    Pane,
+    Radio,
+    Tab,
+    TabGroup,
+    Text,
+    Window,
+    pin,
+    popup,
+    popup_error,
+    popup_yes_no,
+    running_linux,
+    running_mac,
+    running_windows,
+    tclversion_detailed,
+    ver,
+    vtop,
+)
+
 
 def main_open_github_issue():
     font_frame = '_ 14'
@@ -193,22 +220,16 @@ def main_open_github_issue():
     window.close()
 
 
-
-
 def _github_issue_post_make_github_link(title, body):
     pysimplegui_url = "https://github.com/PySimpleGUI/PySimpleGUI"
     pysimplegui_issues = f"{pysimplegui_url}/issues/new?"
 
     # Fix body cuz urllib can't do it smfh
-    getVars = {'title': str(title), 'body': str(body)}
-    return (pysimplegui_issues + urllib.parse.urlencode(getVars).replace("%5Cn", "%0D"))
-
-
-
+    get_vars = {'title': str(title), 'body': str(body)}
+    return (pysimplegui_issues + urllib.parse.urlencode(get_vars).replace("%5Cn", "%0D"))
 
 
 def _github_issue_help():
-    heading_font = '_ 12 bold underline'
     text_font = '_ 10'
 
     def HelpText(text):
@@ -262,18 +283,6 @@ If you've been programming for a month, the person answering your question can a
 1. Fill in the form
 2. Click Post Issue """
 
-    # layout = [  [T('Goals', font=heading_font, pad=(0,0))],
-    #             [HelpText(help_goals)],
-    #             [T('Why?', font=heading_font, pad=(0,0))],
-    #             [HelpText(help_why)],
-    #             [T('FAQ', font=heading_font, pad=(0,0))],
-    #             [HelpText(help_explain)],
-    #             [T('Experience (optional)', font=heading_font)],
-    #             [HelpText(help_experience)],
-    #             [T('Steps', font=heading_font, pad=(0,0))],
-    #             [HelpText(help_steps)],
-    #             [B('Close')]]
-
     t_goals = Tab('Goals', [[HelpText(help_goals)]])
     t_why = Tab('Why', [[HelpText(help_why)]])
     t_faq = Tab('FAQ', [[HelpText(help_explain)]])
@@ -284,8 +293,6 @@ If you've been programming for a month, the person answering your question can a
               [Button('Close')]]
 
     Window('GitHub Issue GUI Help', layout, keep_on_top=True).read(close=True)
-
-
 
 
 def _github_issue_post_validate(values, checklist, issue_types):
@@ -428,13 +435,13 @@ These items may solve your problem. Please check those you've done by changing -
         body2 +=  \
 f"""
 ## Watcha Makin?
-{str(project_details)}
+{project_details}
 """
 
     if where_found:
         body2 += \
 f"""
 ## How did you find PySimpleGUI?
-{str(where_found)}
+{where_found}
 """
     return body + body2

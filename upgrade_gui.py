@@ -1,20 +1,40 @@
 
+import json
 import os
+import platform
+import re
+import socket
 import sys
 import tempfile
 import threading
-from urllib import request
-import re
-import platform
 import webbrowser
-import json
-import socket
+from urllib import request
 
-
-from quick_tkinter import Multiline, Text, Button, Window, Sizegrip, WIN_CLOSED, cprint, Image, Checkbox, EMOJI_BASE64
-from quick_tkinter import version, popup_yes_no, popup_quick_message, popup, execute_command_subprocess, execute_py_file, pysimplegui_user_settings
-from quick_tkinter import running_trinket, running_replit, running_windows, running_linux, running_mac, framework_version
-
+from quick_tkinter import (
+    EMOJI_BASE64,
+    WIN_CLOSED,
+    Button,
+    Checkbox,
+    Image,
+    Multiline,
+    Sizegrip,
+    Text,
+    Window,
+    cprint,
+    execute_command_subprocess,
+    execute_py_file,
+    framework_version,
+    popup,
+    popup_quick_message,
+    popup_yes_no,
+    pysimplegui_user_settings,
+    running_linux,
+    running_mac,
+    running_replit,
+    running_trinket,
+    running_windows,
+    version,
+)
 
 __upgrade_server_ip = 'upgradeapi.PySimpleGUI.com'
 __upgrade_server_port = '5353'
@@ -130,27 +150,27 @@ def _copy_files_from_github():
         package_version = match.group(1)
 
     # create a setup.py file from scratch
-    setup_text = ''.join([
-            "import setuptools\n",
-            "setuptools.setup(",
-            "name='PySimpleGUI',",
-            "author='PySimpleGUI',"
-            "author_email='PySimpleGUI@PySimpleGUI.org',",
-            "description='Unreleased Development Version',",
-            "url='https://github.com/PySimpleGUI/PySimpleGUI',"
-            "packages=setuptools.find_packages(),",
-            "version='", package_version, "',",
-            "entry_points={",
-            "'gui_scripts': [",
-            "'psgissue=PySimpleGUI.PySimpleGUI:main_open_github_issue',",
-            "'psgmain=PySimpleGUI.PySimpleGUI:_main_entry_point',",
-            "'psgupgrade=PySimpleGUI.PySimpleGUI:_upgrade_entry_point',",
-            "'psghelp=PySimpleGUI.PySimpleGUI:main_sdk_help',",
-            "'psgver=PySimpleGUI.PySimpleGUI:main_get_debug_data',",
-            "'psgsettings=PySimpleGUI.PySimpleGUI:main_global_pysimplegui_settings',",
-            "],",
-            "},)"
-            ])
+    setup_text = (
+        "import setuptools\n"
+        "setuptools.setup("
+        "name='PySimpleGUI',"
+        "author='PySimpleGUI',"
+        "author_email='PySimpleGUI@PySimpleGUI.org',"
+        "description='Unreleased Development Version',"
+        "url='https://github.com/PySimpleGUI/PySimpleGUI',"
+        "packages=setuptools.find_packages(),"
+        f"version='{package_version}',"
+        "entry_points={"
+        "'gui_scripts': ["
+        "'psgissue=PySimpleGUI.PySimpleGUI:main_open_github_issue',"
+        "'psgmain=PySimpleGUI.PySimpleGUI:_main_entry_point',"
+        "'psgupgrade=PySimpleGUI.PySimpleGUI:_upgrade_entry_point',"
+        "'psghelp=PySimpleGUI.PySimpleGUI:main_sdk_help',"
+        "'psgver=PySimpleGUI.PySimpleGUI:main_get_debug_data',"
+        "'psgsettings=PySimpleGUI.PySimpleGUI:main_global_pysimplegui_settings',"
+        "],"
+        "},)"
+    )
 
     with open(os.path.join(temp_dir.name, 'setup.py'), 'w', encoding='utf-8') as f:
         f.write(setup_text)
@@ -297,7 +317,7 @@ def __perform_upgrade_check_thread():
                 pysimplegui_user_settings['-upgrade message 2-'] = message2
                 pysimplegui_user_settings['-upgrade recommendation-'] = recommended_version
                 pysimplegui_user_settings['-severity level-'] = severity_level
-    except Exception as e:
+    except Exception:
         reply_data = {}
         # print('Upgrade server error', e)
     # print(f'Upgrade Reply = {reply_data}')
@@ -359,8 +379,7 @@ def __send_dict(ip, port, dict_to_send):
         reply_data = e
     try:
         data_dict = json.loads(reply_data)
-    except Exception as e:
+    except Exception:
         # print(f'UPGRADE THREAD - Error decoding reply {reply_data} as a dictionary. Error = {e}')
         data_dict = {}
     return data_dict
-

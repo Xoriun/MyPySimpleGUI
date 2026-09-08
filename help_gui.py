@@ -1,21 +1,39 @@
 
 import inspect
-import sys
-import pydoc
-import webbrowser
 import itertools
+import pydoc
+import sys
+import webbrowser
 
-
-from quick_tkinter import Window, Text, Column, Multiline, Checkbox, Button, MenubarCustom, Element, Titlebar, Sizegrip, Input, Menu
-from quick_tkinter import WIN_CLOSED
-from quick_tkinter import EMOJI_BASE64, popup_get_text, _error_popup_with_traceback
-import quick_tkinter, psg_debugger, upgrade_gui, open_github_issue_gui, test_gui
+import open_github_issue_gui
+import psg_debugger
+import quick_tkinter
+import test_gui
+import upgrade_gui
+from quick_tkinter import (
+    EMOJI_BASE64,
+    WIN_CLOSED,
+    Button,
+    Checkbox,
+    Column,
+    Element,
+    Input,
+    Menu,
+    MenubarCustom,
+    Multiline,
+    Sizegrip,
+    Text,
+    Titlebar,
+    Window,
+    _error_popup_with_traceback,
+    popup_get_text,
+)
 
 _modules = (sys.modules[__name__], quick_tkinter, psg_debugger, upgrade_gui, open_github_issue_gui, test_gui)
 
 def _all_subclasses(cls: type):
     return set(cls.__subclasses__()).union(
-        (subsubcls for sub_cls in cls.__subclasses__() for subsubcls in _all_subclasses(sub_cls))
+        subsubcls for sub_cls in cls.__subclasses__() for subsubcls in _all_subclasses(sub_cls)
     )
 
 

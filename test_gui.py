@@ -1,29 +1,108 @@
 
-import tkinter as tk
-from tkinter import ttk
-import random
-import webbrowser
+import copy
 import json
 import os
+import random
 import sys
-import copy
+import tkinter as tk
+import webbrowser
+from tkinter import ttk
 
-from quick_tkinter import Window, Text, Spin, Column, Combo, Tab, TabGroup, Frame, Multiline, Input, Listbox, Checkbox, Radio, Button, ButtonMenu, Menu, MenubarCustom, ProgressBar, Image, Graph, VerticalPush, Tree, TreeData, Table, Slider, pin, HorizontalSeparator, Push, OptionMenu, typed
-from quick_tkinter import DEFAULT_MODAL_WINDOWS_FORCED, TIMEOUT_KEY, WIN_CLOSED, WINDOW_CLOSE_ATTEMPTED_EVENT, SYMBOLS, DEFAULTS, RELIEFS, DEFAULT_TTK_PART_MAPPING_DICT
-from quick_tkinter import TTK_SCROLLBAR_PART_LIST, TTK_SCROLLBAR_PART_THEME_BASED_LIST, PSG_THEME_PART_LIST, TTK_SCROLLBAR_PART_ARROW_WIDTH, TTK_SCROLLBAR_PART_SCROLL_WIDTH, TTK_SCROLLBAR_PART_RELIEF
-from quick_tkinter import DEFAULT_BASE64_LOADING_GIF, DEFAULT_BASE64_ICON, EMOJI_BASE64, UDEMY_ICON, PYTHON_COLORED_HEARTS_BASE64, HEART_3D_BASE64, ICON_BUY_ME_A_COFFEE
-from quick_tkinter import set_options, FileBrowse, FolderBrowse
-from quick_tkinter import popup, popup_scrolled, popup_get_file, popup_get_folder, popup_get_date, popup_get_text, popup_non_blocking, popup_auto_close, popup_no_titlebar, popup_quick_message, popup_ok, popup_cancel, popup_ok_cancel, popup_yes_no, popup_error
-from quick_tkinter import theme_background_color, theme, theme_use_custom_titlebar, theme_text_color, OFFICIAL_PYSIMPLEGUI_THEME, _theme_preview_window_swatches, list_of_look_and_feel_values, theme_list, theme_button_color, _change_ttk_theme
-from quick_tkinter import ver, version, pysimplegui_user_settings, get_versions
-from quick_tkinter import running_trinket, execute_editor, vtop
-from quick_tkinter import clipboard_set, ttk_part_mapping_dict
-from quick_tkinter import Print, tkinter_keysyms, main_mac_feature_control, _global_settings_get_watermark_info, _global_settings_get_ttk_scrollbar_info, _read_mac_global_settings
 import help_gui
-import upgrade_gui
 import open_github_issue_gui
 import psg_debugger
-
+import upgrade_gui
+from quick_tkinter import (
+    DEFAULT_BASE64_ICON,
+    DEFAULT_BASE64_LOADING_GIF,
+    DEFAULT_MODAL_WINDOWS_FORCED,
+    DEFAULTS,
+    EMOJI_BASE64,
+    HEART_3D_BASE64,
+    ICON_BUY_ME_A_COFFEE,
+    OFFICIAL_PYSIMPLEGUI_THEME,
+    PSG_THEME_PART_LIST,
+    PYTHON_COLORED_HEARTS_BASE64,
+    RELIEFS,
+    SYMBOLS,
+    TIMEOUT_KEY,
+    TTK_SCROLLBAR_PARTS,
+    UDEMY_ICON,
+    WIN_CLOSED,
+    WINDOW_CLOSE_ATTEMPTED_EVENT,
+    Button,
+    ButtonMenu,
+    Checkbox,
+    Column,
+    Combo,
+    FileBrowse,
+    FolderBrowse,
+    Frame,
+    Graph,
+    HorizontalSeparator,
+    Image,
+    Input,
+    Listbox,
+    Menu,
+    MenubarCustom,
+    Multiline,
+    OptionMenu,
+    Print,
+    ProgressBar,
+    Push,
+    Radio,
+    Slider,
+    Spin,
+    Tab,
+    TabGroup,
+    Table,
+    Text,
+    Tree,
+    TreeData,
+    VerticalPush,
+    Window,
+    _change_ttk_theme,
+    _global_settings_get_ttk_scrollbar_info,
+    _global_settings_get_watermark_info,
+    _read_mac_global_settings,
+    _theme_preview_window_swatches,
+    clipboard_set,
+    execute_editor,
+    get_versions,
+    list_of_look_and_feel_values,
+    main_mac_feature_control,
+    pin,
+    popup,
+    popup_auto_close,
+    popup_cancel,
+    popup_error,
+    popup_get_date,
+    popup_get_file,
+    popup_get_folder,
+    popup_get_text,
+    popup_no_titlebar,
+    popup_non_blocking,
+    popup_ok,
+    popup_ok_cancel,
+    popup_quick_message,
+    popup_scrolled,
+    popup_yes_no,
+    pysimplegui_user_settings,
+    running_trinket,
+    set_options,
+    theme,
+    theme_background_color,
+    theme_button_color,
+    theme_list,
+    theme_text_color,
+    theme_use_custom_titlebar,
+    tkinter_keysyms,
+    ttk_part_mapping_dict,
+    typed,
+    ver,
+    version,
+    vtop,
+)
 
 upgrade_gui.__perform_upgrade_check()
 
@@ -49,14 +128,14 @@ def main():
             # Print(values)
         if event in {WIN_CLOSED, WINDOW_CLOSE_ATTEMPTED_EVENT, 'Exit'} or (event == '-BMENU-' and values['-BMENU-'] == 'Exit'):
             break
-        if i < graph_elem.CanvasSize[0]:
-            x = i % graph_elem.CanvasSize[0]
-            fig = graph_elem.draw_line((x, 0), (x, random.randint(0, graph_elem.CanvasSize[1])), width=1, color=f"#{random.randint(0, 0xffffff):06x}")
+        if i < graph_elem.canvas_size[0]:
+            x = i % graph_elem.canvas_size[0]
+            fig = graph_elem.draw_line((x, 0), (x, random.randint(0, graph_elem.canvas_size[1])), width=1, color=f"#{random.randint(0, 0xffffff):06x}")
             graph_figures.append(fig)
         else:
-            x = graph_elem.CanvasSize[0]
+            x = graph_elem.canvas_size[0]
             graph_elem.move(-1, 0)
-            fig = graph_elem.draw_line((x, 0), (x, random.randint(0, graph_elem.CanvasSize[1])), width=1, color=f"#{random.randint(0, 0xffffff):06x}")
+            fig = graph_elem.draw_line((x, 0), (x, random.randint(0, graph_elem.canvas_size[1])), width=1, color=f"#{random.randint(0, 0xffffff):06x}")
             graph_figures.append(fig)
             graph_elem.delete_figure(graph_figures[0])
             del graph_figures[0]
@@ -273,7 +352,7 @@ def _create_main_window():
     ]
     pop_test_tab_layout = [[Frame(title='test', layout=pop_test_tab_layout)]]
 
-    GRAPH_SIZE=(500, 200)
+    GRAPH_SIZE = (500, 200)
     graph_elem = Graph(canvas_size=GRAPH_SIZE, graph_bottom_left=(0, 0), graph_top_right=GRAPH_SIZE, key='+GRAPH+')
 
     frame6 = [[VerticalPush()],[graph_elem]]
@@ -539,14 +618,14 @@ def main_global_pysimplegui_settings():
                                 [HorizontalSeparator()],
                                 [Text('TTK Scrollbar Settings', font='_ 16')]]
 
-    t_len = max([len(l) for l in TTK_SCROLLBAR_PART_LIST])
+    t_len = max([len(line) for line in TTK_SCROLLBAR_PARTS.LIST])
     ttk_layout = [[]]
     for key, item in ttk_part_mapping_dict.items():
-        if key in TTK_SCROLLBAR_PART_THEME_BASED_LIST:
+        if key in TTK_SCROLLBAR_PARTS.THEME_BASED_LIST:
             ttk_layout += [[Text(key, size=t_len, justification='r'), Combo(PSG_THEME_PART_LIST, default_value=settings.get(('-ttk scroll-', key), item), key=('-TTK SCROLL-', key))]]
-        elif key in (TTK_SCROLLBAR_PART_ARROW_WIDTH, TTK_SCROLLBAR_PART_SCROLL_WIDTH):
+        elif key in (TTK_SCROLLBAR_PARTS.ARROW_WIDTH, TTK_SCROLLBAR_PARTS.SCROLL_WIDTH):
             ttk_layout += [[Text(key, size=t_len, justification='r'), Combo(list(range(100)), default_value=settings.get(('-ttk scroll-', key), item), key=('-TTK SCROLL-', key))]]
-        elif key == TTK_SCROLLBAR_PART_RELIEF:
+        elif key == TTK_SCROLLBAR_PARTS.RELIEF:
             ttk_layout += [[Text(key, size=t_len, justification='r'), Combo(list(RELIEFS.values()), default_value=settings.get(('-ttk scroll-', key), item), readonly=True, key=('-TTK SCROLL-', key))]]
 
     ttk_scrollbar_tab_layout += ttk_layout
@@ -580,11 +659,11 @@ def main_global_pysimplegui_settings():
     # ------------------------- Snapshots Tab -------------------------
 
     snapshots_tab = Tab('Window Snapshots',
-              [[Combo(('',)+key_choices, default_value=settings.get(json.dumps(('-snapshot keysym-', i)), ''), readonly=True, key=('-SNAPSHOT KEYSYM-', i), size=(None, 30)) for i in range(4)],
+              [[Combo(('', *key_choices), default_value=settings.get(json.dumps(('-snapshot keysym-', i)), ''), readonly=True, key=('-SNAPSHOT KEYSYM-', i), size=(None, 30)) for i in range(4)],
               [Text('Manually Entered Bind String:'), Input(settings.get('-snapshot keysym manual-', ''),key='-SNAPSHOT KEYSYM MANUAL-')],
               [Text('Folder to store screenshots:'), Push(), Input(settings.get('-screenshots folder-', ''), key='-SCREENSHOTS FOLDER-'), FolderBrowse()],
               [Text('Screenshots Filename or Prefix:'), Push(), Input(settings.get('-screenshots filename-', ''), key='-SCREENSHOTS FILENAME-'), FileBrowse()],
-              [Checkbox('Auto-number Images', key='-SCREENSHOTS AUTONUMBER-')]], font='_ 16', expand_x=True,)
+              [Checkbox('Auto-number Images', key='-SCREENSHOTS AUTONUMBER-')]], font='_ 16', expand_x=True)
 
     # ------------------------- Theme Tab -------------------------
 
@@ -604,7 +683,7 @@ def main_global_pysimplegui_settings():
 
 
 
-    settings_tab_group = TabGroup(layout=[[theme_tab, ttk_tab, interpreter_tab, explorer_tab, editor_tab, snapshots_tab,  ]])
+    settings_tab_group = TabGroup(layout=[[theme_tab, ttk_tab, interpreter_tab, explorer_tab, editor_tab, snapshots_tab]])
     layout += [[settings_tab_group]]
               # [T('Buttons (Leave Unchecked To Use Default) NOT YET IMPLEMENTED!',  font='_ 16')],
               #      [Checkbox('Always use TTK buttons'), CBox('Always use TK Buttons')],
@@ -678,11 +757,11 @@ def main_global_pysimplegui_settings():
             # re-read the settings in case they changed
             _read_mac_global_settings()
         elif event == 'Reset Scrollbar Settings':
-            ttk_part_mapping_dict = copy.copy(DEFAULT_TTK_PART_MAPPING_DICT)
+            ttk_part_mapping_dict = copy.copy(DEFAULTS.TTK_PARTMAPPING_DICT)
             for key, item in ttk_part_mapping_dict.items():
                 window[('-TTK SCROLL-', key)].update(item)
         elif event == 'Test Scrollbar Settings':
-            for ttk_part in TTK_SCROLLBAR_PART_LIST:
+            for ttk_part in TTK_SCROLLBAR_PARTS.LIST:
                 value = values[('-TTK SCROLL-', ttk_part)]
                 ttk_part_mapping_dict[ttk_part] = value
             DEFAULT_TTK_THEME = values['-TTK THEME-']
