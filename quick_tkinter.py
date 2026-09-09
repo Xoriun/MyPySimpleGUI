@@ -12,7 +12,7 @@
 
 #     __builtins__ = _DefaultDict(vars(builtins))
 #     del _DefaultDict  # avoid namespace pollution
-#     exec(sys._getframe(0).f_code, globals()) # noqa: S102, SLF001
+#     exec(sys._getframe(0).f_code, globals())  # noqa: S102, SLF001
 
 # all of the tkinter involved imports
 # import threadsafe_tkinter as tk
@@ -123,14 +123,14 @@ port = 'PySimpleGUI'
 
 
 
-    888      .d8888b.  8888888b.  888      .d8888b.          
-    888     d88P  Y88b 888   Y88b 888     d88P  Y88b         
+    888      .d8888b.  8888888b.  888      .d8888b.
+    888     d88P  Y88b 888   Y88b 888     d88P  Y88b
     888     888    888 888    888 888          .d88P
-    888     888        888   d88P 888         8888"    888   
-    888     888  88888 8888888P"  888          "Y8b. 8888888 
-    888     888    888 888        888     888    888   888   
-    888     Y88b  d88P 888        888     Y88b  d88P         
-    88888888 "Y8888P88 888        88888888 "Y8888P"          
+    888     888        888   d88P 888         8888"    888
+    888     888  88888 8888888P"  888          "Y8b. 8888888
+    888     888    888 888        888     888    888   888
+    888     Y88b  d88P 888        888     Y88b  d88P
+    88888888 "Y8888P88 888        88888888 "Y8888P"
 
 
     In addition to the normal publishing requirements of LGPL3+, these also apply:
@@ -162,13 +162,13 @@ port = 'PySimpleGUI'
     -----------------------------------------------------------------------------------------------------------------
 
 
-    The first bit of good news for you is that literally 100s of pages of documentation await you. 
+    The first bit of good news for you is that literally 100s of pages of documentation await you.
     300 Demo Programs have been written as a "jump start" mechanism to get your running as quickly as possible.
 
     Some general bits of advice:
     Upgrade your software!  python -m pip install --upgrade --no-cache-dir PySimpleGUI
     If you're thinking of filing an Issue or posting a problem, Upgrade your software first
-    There are constantly something new and interesting coming out of this project so stay current if you can 
+    There are constantly something new and interesting coming out of this project so stay current if you can
 
     The FASTEST WAY to learn PySimpleGUI is to begin to use it in conjunction with the materials provided by the project.
     http://www.PySimpleGUI.org
@@ -179,12 +179,12 @@ port = 'PySimpleGUI'
 
     A final note from mike...
     
-        “Don't aim at success. The more you aim at it and make it a target, the more you are going to miss it. 
+        “Don't aim at success. The more you aim at it and make it a target, the more you are going to miss it.
         For success, like happiness, cannot be pursued; it must ensue, and it only does so as the unintended side effect of one's personal dedication to a cause greater.”
             — Viktor Frankl
     
         I first saw this quote in a truncated format:
-            "Happiness, cannot be pursued; it must ensue, and it only does so as the unintended side effect of one's personal dedication to a cause greater."    
+            "Happiness, cannot be pursued; it must ensue, and it only does so as the unintended side effect of one's personal dedication to a cause greater."
     
         Everyone is different, but my experience with the PySimpleGUI project matches this theory.  It's taken a lifetime of trying and "failing" and trying
         to find happiness before I finally figured this truth-for-me out.  If I do a long list of things, and live life in a kind & loving way, then the
@@ -440,8 +440,8 @@ running_trinket = _RunningTrinket()
 
     It's a mess.... really... it's a mess internally... it's the external-facing interfaces that
     are not a mess.  The Elements and the methods for them are well-designed.
-    PEP8 - this code is far far from PEP8 compliant. 
-    It was written PRIOR to learning that PEP8 existed. 
+    PEP8 - this code is far far from PEP8 compliant.
+    It was written PRIOR to learning that PEP8 existed.
 
     I'll be honest.... started learning Python in Nov 2017, started writing PySimpleGUI in Feb 2018.
     Released PySimpleGUI in July 2018.  I knew so little about Python that my parameters were all named
@@ -449,14 +449,14 @@ running_trinket = _RunningTrinket()
     parameters to lower case.  Unfortunately, the internal naming conventions have been set.  Mixing them
     with PEP8 at this moment would be even MORE confusing.
 
-    Code I write now, outside PySimpleGUI, IS PEP8 compliant.  
+    Code I write now, outside PySimpleGUI, IS PEP8 compliant.
 
     The variable and function naming in particular are not compliant.  There is
     liberal use of CamelVariableAndFunctionNames, but for anything externally facing, there are aliases
     available for all functions.  If you've got a serious enough problem with 100% PEP8 compliance
     that you'll pass on this package, then that's your right and I invite you to do so.  However, if
     perhaps you're a practical thinker where it's the results that matter, then you'll have no
-    trouble with this code base.  There is consisency however.  
+    trouble with this code base.  There is consisency however.
 
     I truly hope you get a lot of enjoyment out of using PySimpleGUI.  It came from good intentions.
 """
@@ -2077,7 +2077,7 @@ class Element[widget_type: tk.Widget](ABC):
             return False
         
         if self._auto_size_text is not None:
-            return self._auto_size_text 
+            return self._auto_size_text
         
         if self.parent_form_for_buttons.auto_size_text is not None:
             return self.parent_form_for_buttons.auto_size_text
@@ -2695,7 +2695,7 @@ class Container:
             element._build_results()
 
         if self._use_dictionary:
-            self.toplevel_form.use_dictionary = True
+            self.toplevel_form._use_dictionary = True
     
     def _find_element_with_focus_in_sub_form(self):
         """
@@ -2927,7 +2927,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
                             'The color passed in was:', ibeam_color)
 
     @property
-    def TKEntry(self) -> tk.Entry:
+    def TKEntry(self) -> tk.Entry:  # noqa: N802
         """For Backwards-compatability only, returns the widget"""
         print("Use of entry_obj.TKEntry is depricated, use entry_obj.widget instead")
         return self._widget
@@ -3484,7 +3484,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
         self._toplevel_form.add_return_value(self, self.tk_string_var.get())
         
     @property
-    def TKOptionMenu(self) -> tk.OptionMenu:
+    def TKOptionMenu(self) -> tk.OptionMenu:  # noqa: N802
         """For Backwards-compatability only, returns the widget"""
         print("Use of option_menu_obj.TKOptionMenu is depricated, use option_menu_obj.widget instead")
         return self._widget
@@ -3985,7 +3985,8 @@ class Radio(Element[tk.Radiobutton]):
         """
         return self.tk_int_var.get() == self.encoded_radio_value
     
-    def TKRadio(self) -> tk.Radiobutton:
+    def TKRadio(self) -> tk.Radiobutton:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Usage of radio_obj.TKRadio is depricated! Use radio_obj.widget instead.')
         return self._widget
     
@@ -4179,7 +4180,8 @@ class Checkbox(Element[tk.Checkbutton]):
             self._visible = visible
 
     @property
-    def TKCheckbutton(self) -> tk.Checkbutton:
+    def TKCheckbutton(self) -> tk.Checkbutton:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using checkbox_obj.TKCheckbutton is depricated! Use checkbox_obj.widget instea.')
         return self._widget
 
@@ -4365,7 +4367,8 @@ class Spin(_InputElement[tk.Spinbox]):
         return value
 
     @property
-    def TKSpinBox(self) -> tk.Spinbox:
+    def TKSpinBox(self) -> tk.Spinbox:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Usage of spin_obj.TKSpinBox is depricated. Use spin_obj.widget instead.')
         return self._widget
         
@@ -5953,13 +5956,13 @@ class Button(Element[tk.Button | ttk.Button]):
                 value = None
 
         if (self.b_type == Button.TYPE.COLOR_CHOOSER and self.target == (None, None)) or \
-            (self.key is not None and self.b_type in 
+            (self.key is not None and self.b_type in
                 {Button.TYPE.SAVEAS_FILE, Button.TYPE.BROWSE_FILE, Button.TYPE.BROWSE_FILES,
-                Button.TYPE.BROWSE_FOLDER, Button.TYPE.CALENDAR_CHOOSER}):        
+                Button.TYPE.BROWSE_FOLDER, Button.TYPE.CALENDAR_CHOOSER}):
             self._toplevel_form.add_return_value(self, value)
 
     @property
-    def TKButton(self):
+    def TKButton(self):  # noqa: N802
         print('Using button_obj.TKButton is deprecated. Use button_obj.widget instead.')
         return self._widget
 
@@ -6393,12 +6396,12 @@ class ButtonMenu(Element[tk.Menubutton]):
         return self._widget
 
     @property
-    def TKButtonMenu(self) -> tk.Menubutton:
+    def TKButtonMenu(self) -> tk.Menubutton:  # noqa: N802
         print('Using buttonmenu_obj.TKButtonMenu is depricated! Use buttonmenu_obj.widget instead.')
         return self._widget
 
     @property
-    def TKButton(self) -> tk.Menubutton:
+    def TKButton(self) -> tk.Menubutton:  # noqa: N802
         print('Using buttonmenu_obj.TKButton is depricated! Use buttonmenu_obj.widget instead.')
         return self._widget
 
@@ -6986,7 +6989,7 @@ class Canvas(Element[tk.Canvas]):
         return self._widget
 
     @property
-    def TKCanvas(self) -> tk.Canvas:
+    def TKCanvas(self) -> tk.Canvas:  # noqa: N802
         print('Using canvas_obj.TKCanvas is depricated! Use canvas_obj.widget instead.')
         return self._widget
 
@@ -7582,19 +7585,6 @@ class Graph(Element[tk.Canvas]):
         self.bottom_left = graph_bottom_left
         self.top_right = graph_top_right
 
-    @property
-    def TKCanvas(self):
-        """
-        Returns the underlying tkiner Canvas widget
-
-        :return: The tkinter canvas widget
-        :rtype:  (tk.Canvas)
-        """
-        if self._widget is None:
-            print('*** Did you forget to call Finalize()? Your code should look something like: ***')
-            print('*** form = sg.Window("My Form").Layout(layout).Finalize() ***')
-        return self._widget
-
     # button release callback
     def button_release_call_back(self, event):
         """
@@ -7652,7 +7642,7 @@ class Graph(Element[tk.Canvas]):
         Not called by the user.  It's called from another method/function that tkinter calledback
 
         :param event: (event) event info from tkinter. Contains the x and y coordinates of a click
-        :type event:  
+        :type event:
         """
 
         self.click_position = self._convert_canvas_xy_to_xy(event.x, event.y)
@@ -7717,7 +7707,14 @@ class Graph(Element[tk.Canvas]):
         _exit_mainloop(self.parent_form_for_buttons)
 
     @property
-    def _TKCanvas2(self) -> tk.Canvas:
+    def TKCanvas(self) -> tk.Canvas:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
+        print('Using graph_obj.TKCanvas is deprecated! Use graph_obj.widget instead.')
+        return self._widget
+
+    @property
+    def _TKCanvas2(self) -> tk.Canvas:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using graph_obj._TKCanvas2 is deprecated! Use graph_obj.widget instead.')
         return self._widget
 
@@ -7818,7 +7815,7 @@ class Frame(Container, Element[tk.Frame]):
             self._visible = visible
 
     @property
-    def TKFrame(self) -> tk.LabelFrame:
+    def TKFrame(self) -> tk.LabelFrame:  # noqa: N802
         """For Backwards-compatability only, returns the widget"""
         print("Use of frame_obj.TKFrame is depricated, use frame_obj.widget instead")
         return self._widget
@@ -8063,7 +8060,8 @@ class Tab(Container, Element[tk.Frame]):
     # def widget(self) -> tk.Frame: ...
 
     @property
-    def TKFrame(self) -> tk.Frame:
+    def TKFrame(self) -> tk.Frame:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using frame_obj.TKFrame is deprecated! Use frame_obj.widget instead.')
         return self._widget
 
@@ -8340,7 +8338,8 @@ class TabGroup(Container, Element[ttk.Notebook]):
     
 
     @property
-    def TKNotebook(self) -> ttk.Notebook:
+    def TKNotebook(self) -> ttk.Notebook:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using tab_group_obj.TKNotebook is deprecated! Use tab_group_obj.widget instead.')
         return self._widget
 
@@ -8535,7 +8534,8 @@ class Slider(Element[tk.Scale]):
         self._toplevel_form.add_return_value(self, value)
     
     @property
-    def TKScale(self) -> tk.Scale:
+    def TKScale(self) -> tk.Scale:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using slider_obj.TKScale is depricated. Use slider_obj.widget instead.')
         return self._widget
     
@@ -8642,14 +8642,14 @@ class TkScrollableFrame(tk.Frame):
         # self.bind('<Configure>', self.set_scrollregion)
 
 
-        self.unhookMouseWheel(None)
-        self._canvas.bind("<Enter>", self.hookMouseWheel)
-        self._canvas.bind("<Leave>", self.unhookMouseWheel)
+        self.unhook_mouse_wheel(None)
+        self._canvas.bind("<Enter>", self.hook_mouse_wheel)
+        self._canvas.bind("<Leave>", self.unhook_mouse_wheel)
         self.bind('<Configure>', self.set_scrollregion)
 
 
     # Chr0nic
-    def hookMouseWheel(self, e):
+    def hook_mouse_wheel(self, e):
         # print("enter")
         # VarHolder.canvas_holder = self.canvas
         self._canvas.bind_all('<4>', self.yscroll, add='+')
@@ -8660,7 +8660,7 @@ class TkScrollableFrame(tk.Frame):
         self._canvas.bind_all("<Shift-TouchpadScroll>", self._touch_scroll, add='+')
 
     # Chr0nic
-    def unhookMouseWheel(self, e):
+    def unhook_mouse_wheel(self, e):
         # print("leave")
         # VarHolder.canvas_holder = None
         self._canvas.unbind_all('<4>')
@@ -8787,7 +8787,7 @@ class Column(Container, Element[tk.Frame]):
         self._widget.canvas.config(scrollregion=self._widget.canvas.bbox('all'))
 
     @property
-    def TKColFrame(self) -> tk.Frame:
+    def TKColFrame(self) -> tk.Frame:  # noqa: N802
         """For Backwards-compatability only, returns the widget"""
         print("Use of column_obj.TKColFrame is depricated, use column_obj.widget instead")
         return self._widget
@@ -8929,7 +8929,8 @@ class Pane(Container, Element[tk.PanedWindow]):
             self._visible = visible
 
     @property
-    def PanedWindow(self) -> tk.PanedWindow:
+    def PanedWindow(self) -> tk.PanedWindow:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using pane_obj.PanedWindow is depricated. Use pane_obj.widget instead.')
         return self._widget
     
@@ -9336,7 +9337,8 @@ class Menu(Element[tk.Menu]):
         self._toplevel_form.add_return_value(self, res)
     
     @property
-    def TKMenu(self):
+    def TKMenu(self) -> tk.Menu:  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using menu_obj.TKMenu is depricated! Use menu_obj.widget instead.')
         return self._widget
 
@@ -9717,7 +9719,8 @@ class Table(Element[ttk.Treeview]):
         """
         return self.last_clicked_position
 
-    def TKTreeview(self):
+    def TKTreeview(self):  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using table_obj.TKTreeview is deprecated! Use table_obj.widget instead.')
         return self._widget
 
@@ -10172,7 +10175,8 @@ class Tree(Element[ttk.Treeview]):
     def _widget_for_visibility(self):
         return self.element_frame
 
-    def TKTreeview(self):
+    def TKTreeview(self):  # noqa: N802
+        """For Backwards-compatability only, returns the widget"""
         print('Using table_obj.TKTreeview is deprecated! Use table_obj.widget instead.')
         return self._widget
 
@@ -10374,10 +10378,10 @@ class TreeData:
             """
 
             self.parent = parent  # type: TreeData.node
-            self.children = []  # type: List[TreeData.node]
+            self.children = []  # type: list[TreeData.node]
             self.key = key  # type: str
             self.text = text  # type: str
-            self.values = values  # type: List[Any]
+            self.values = values  # type: list[Any]
             self.icon = icon  # type: str | bytes
 
         def _Add(self, node):
@@ -13073,7 +13077,7 @@ class Window(Container):
         with the constants EVENT_TIMER or TIMER_KEY.  They both equal the same value.
         The values dictionary will contain the timer ID that is returned from this function.
         
-        :param frequency_ms:    How often to generate timer events in milliseconds 
+        :param frequency_ms:    How often to generate timer events in milliseconds
         :type frequency_ms:     int
         :param key:             Key to be returned as the timer event
         :type key:              str | int | tuple | object
@@ -14145,7 +14149,7 @@ def SaveAs(button_text='Save As...', *, target=(ThisRow, -1), file_types=FILE_TY
     :param font:              specifies the  font family, size, etc. Tuple or Single string format 'name size styles'. Styles: italic * roman bold normal underline overstrike
     :type font:               (str or (str, int[, str]) or None)
     :param pad:               Amount of padding to put around element in pixels (left/right, top/bottom) or ((left, right), (top, bottom)) or an int. If an int, then it's converted into a tuple (int, int)
-    :type pad:                (int, int) or ((int, int),(int,int)) or (int,(int,int)) or  ((int, int),int) | int 
+    :type pad:                (int, int) or ((int, int),(int,int)) or (int,(int,int)) or  ((int, int),int) | int
     :param key:               key for uniquely identify this element (for window.find_element)
     :type key:                str | int | tuple | object
     :param visible:           set initial visibility state of the Button
@@ -14289,7 +14293,7 @@ def Open(button_text='Open', *, size=(None, None), auto_size_button=None, button
     :return:                 returns a button
     :rtype:                  (Button)
     """
-    return Button(button_text=button_text, button_type=Button.TYPE.READ_FORM, tooltip=tooltip, size=size, 
+    return Button(button_text=button_text, button_type=Button.TYPE.READ_FORM, tooltip=tooltip, size=size,
                   auto_size_button=auto_size_button, button_color=button_color, font=font, disabled=disabled,
                   bind_return_key=bind_return_key, focus=focus, pad=pad, key=key, isible=visible, metadata=metadata, expand_x=expand_x, expand_y=expand_y)
 
@@ -15932,7 +15936,6 @@ class _QuickMeter:
         return self.window
 
     def UpdateMeter(self, current_value, max_value, *args):  ### support for *args when updating
-
         self.current_value = current_value
         self.max_value = max_value
         self.window.find_element('-PROG-').update_bar(self.current_value, self.max_value)
@@ -17789,68 +17792,67 @@ def _hex_to_hsl(hex_val):
     return _rgb_to_hsl(r, g, b)
 
 
-def _hex_to_rgb(hex):
-    hex = hex.lstrip('#')
-    hlen = len(hex)
-    return tuple(int(hex[i:i + hlen // 3], 16) for i in range(0, hlen, hlen // 3))
+def _hex_to_rgb(hex_val:str):
+    hex_val = hex_val.lstrip('#')
+    hlen = len(hex_val)
+    return tuple(int(hex_val[i:i + hlen // 3], 16) for i in range(0, hlen, hlen // 3))
 
 
-def _rgb_to_hsl(r, g, b):
-    r = float(r)
-    g = float(g)
-    b = float(b)
-    high = max(r, g, b)
-    low = min(r, g, b)
-    h, s, v = ((high + low) / 2,) * 3
+def _rgb_to_hsl(red:int, green:int, blue:int):
+    """Convert rgb color (0..255) to hsl color (0..360, 0..1, 0..1)"""
+    red /= 255
+    green /= 255
+    blue /= 255
+    high = max(red, green, blue)
+    low = min(red, green, blue)
+    lightness = (high + low) / 2
+
     if high == low:
-        h = s = 0.0
-    else:
-        d = high - low
-        l = (high + low) / 2
-        s = d / (2 - high - low) if l > 0.5 else d / (high + low)
-        h = {
-            r: (g - b) / d + (6 if g < b else 0),
-            g: (b - r) / d + 2,
-            b: (r - g) / d + 4,
-        }[high]
-        h /= 6
-    return h, s, v
+        return 0.0, 0.0, lightness
+    
+    diff = high - low
+    saturation = diff / 2 / ( (1 - lightness) if lightness > 0.5 else lightness )
+    hue = {
+        red: (green - blue) / diff + 0,
+        green: (blue - red) / diff + 2,
+        blue: (red - green) / diff + 4,
+    }[high]
+    hue *= 60
+    return hue, saturation, lightness
 
 
-def _hsl_to_rgb(h, s, l):
-    def hue_to_rgb(p, q, t):
-        t += 1 if t < 0 else 0
-        t -= 1 if t > 1 else 0
-        if t < 1 / 6:
-            return p + (q - p) * 6 * t
-        if t < 1 / 2:
-            return q
-        if t < 2 / 3:
-            p + (q - p) * (2 / 3 - t) * 6
-        return p
+def _hsl_to_rgb(hue:float, saturation:float, lightness:float):
+    """Convert hsl color (0..360, 0..1, 0..1) to rgb color (0..255)"""
+    if saturation == 0:
+        color = int(255 * lightness)
+        return color, color, color
 
-    if s == 0:
-        r, g, b = l, l, l
-    else:
-        q = l * (1 + s) if l < 0.5 else l + s - l * s
-        p = 2 * l - q
-        r = hue_to_rgb(p, q, h + 1 / 3)
-        g = hue_to_rgb(p, q, h)
-        b = hue_to_rgb(p, q, h - 1 / 3)
+    chroma = 2 * ( (1 - lightness) if lightness > .5 else lightness ) * saturation
+    shift = lightness - chroma / 2
+    hue_rem_mod2 = (hue / 60) % 2
+    interm = chroma * (2 - hue_rem_mod2 if hue_rem_mod2 > 1 else hue_rem_mod2)
 
-    return r, g, b
+    _r = 0 if 120 <= hue <= 240 else (interm if 60  <= hue <= 300 else chroma)
+    _g = 0 if 240 <= hue        else (chroma if 60  <= hue <= 180 else interm)  # noqa: SIM300
+    _b = 0 if        hue <= 120 else (chroma if 180 <= hue <= 300 else interm)
+    
+    return (
+        int((_r + shift) * 255),
+        int((_g + shift) * 255),
+        int((_b + shift) * 255)
+    )
 
 
-def _hsv_to_hsl(h, s, v):
-    l = 0.5 * v * (2 - s)
-    s = v * s / (1 - fabs(2 * l - 1))
-    return h, s, l
+def _hsv_to_hsl(hue, saturation, value):
+    lightness = value * (1 - saturation / 2)
+    saturation = (value - lightness) / (1 - lightness if lightness > .5 else lightness)
+    return hue, saturation, lightness
 
 
-def _hsl_to_hsv(h, s, l):
-    v = (2 * l + s * (1 - fabs(2 * l - 1))) / 2
-    s = 2 * (v - l) / v
-    return h, s, v
+def _hsl_to_hsv(hue, saturation, lightness):
+    value = lightness + saturation * (1 - lightness if lightness > .5 else lightness)
+    saturation = 0 if value == 0 else 2 * (1 - lightness / value)
+    return hue, saturation, value
 
 
 def obj_to_string_single_obj(obj):
@@ -20228,14 +20230,14 @@ def user_settings_object():
  ##:::::::: ##:. ##:: ##::::::: ##::: ##: ##:::: ##:::: ##:::: ##:::::::
  ########: ##:::. ##: ########:. ######::. #######::::: ##:::: ########:
 ........::..:::::..::........:::......::::.......::::::..:::::........::
-:::'###::::'########::'####::'######::                                  
-::'## ##::: ##.... ##:. ##::'##... ##:                                  
-:'##:. ##:: ##:::: ##:: ##:: ##:::..::                                  
-'##:::. ##: ########::: ##::. ######::                                  
- #########: ##.....:::: ##:::..... ##:                                  
- ##.... ##: ##::::::::: ##::'##::: ##:                                  
- ##:::: ##: ##::::::::'####:. ######::                                  
-..:::::..::..:::::::::....:::......:::        
+:::'###::::'########::'####::'######::
+::'## ##::: ##.... ##:. ##::'##... ##:
+:'##:. ##:: ##:::: ##:: ##:: ##:::..::
+'##:::. ##: ########::: ##::. ######::
+ #########: ##.....:::: ##:::..... ##:
+ ##.... ##: ##::::::::: ##::'##::: ##:
+ ##:::: ##: ##::::::::'####:. ######::
+..:::::..::..:::::::::....:::......:::
 
 
 
@@ -20555,7 +20557,7 @@ def execute_get_editor():
 '''
 The Mac problems have been significant enough to warrant the addition of a series of settings that allow
 users to turn specific patches and features on or off depending on their setup.  There is not enough information
-available to make this process more atuomatic.  
+available to make this process more atuomatic.
 
 """
 
@@ -20860,29 +20862,29 @@ def _random_happy_emoji():
 
 
 '''
-M"""""`'"""`YM                            
-M  mm.  mm.  M                            
-M  MMM  MMM  M .d8888b. 88d888b. .d8888b. 
-M  MMM  MMM  M 88'  `88 88'  `88 88ooood8 
-M  MMM  MMM  M 88.  .88 88       88.  ... 
-M  MMM  MMM  M `88888P' dP       `88888P' 
-MMMMMMMMMMMMMM                            
+M"""""`'"""`YM
+M  mm.  mm.  M
+M  MMM  MMM  M .d8888b. 88d888b. .d8888b.
+M  MMM  MMM  M 88'  `88 88'  `88 88ooood8
+M  MMM  MMM  M 88.  .88 88       88.  ...
+M  MMM  MMM  M `88888P' dP       `88888P'
+MMMMMMMMMMMMMM
                                           
-M#"""""""'M                             .d8888P dP   dP 
-##  mmmm. `M                            88'     88   88 
-#'        .M .d8888b. .d8888b. .d8888b. 88baaa. 88aaa88 
-M#  MMMb.'YM 88'  `88 Y8ooooo. 88ooood8 88` `88      88 
-M#  MMMM'  M 88.  .88       88 88.  ... 8b. .d8      88 
-M#       .;M `88888P8 `88888P' `88888P' `Y888P'      dP 
-M#########M                                             
+M#"""""""'M                             .d8888P dP   dP
+##  mmmm. `M                            88'     88   88
+#'        .M .d8888b. .d8888b. .d8888b. 88baaa. 88aaa88
+M#  MMMb.'YM 88'  `88 Y8ooooo. 88ooood8 88` `88      88
+M#  MMMM'  M 88.  .88       88 88.  ... 8b. .d8      88
+M#       .;M `88888P8 `88888P' `88888P' `Y888P'      dP
+M#########M
                                                         
-M""M                                                
-M  M                                                
-M  M 88d8b.d8b. .d8888b. .d8888b. .d8888b. .d8888b. 
-M  M 88'`88'`88 88'  `88 88'  `88 88ooood8 Y8ooooo. 
-M  M 88  88  88 88.  .88 88.  .88 88.  ...       88 
-M  M dP  dP  dP `88888P8 `8888P88 `88888P' `88888P' 
-MMMM                          .88                   
+M""M
+M  M
+M  M 88d8b.d8b. .d8888b. .d8888b. .d8888b. .d8888b.
+M  M 88'`88'`88 88'  `88 88'  `88 88ooood8 Y8ooooo.
+M  M 88  88  88 88.  .88 88.  .88 88.  ...       88
+M  M dP  dP  dP `88888P8 `8888P88 `88888P' `88888P'
+MMMM                          .88
                           d8888P
 '''
 

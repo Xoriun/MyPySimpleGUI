@@ -29,7 +29,7 @@ from quick_tkinter import (
 
 
 class _Debugger:
-    debugger = None
+    debugger: _Debugger | None = None
     DEBUGGER_MAIN_WINDOW_THEME = 'dark grey 13'
     DEBUGGER_POPOUT_THEME = 'dark grey 13'
     WIDTH_VARIABLES = 23
@@ -64,26 +64,33 @@ class _Debugger:
         theme(_Debugger.DEBUGGER_MAIN_WINDOW_THEME)
 
         def _in_var(key1):
-            return [Text('    '),
-                    Input(key=key1, size=(_Debugger.WIDTH_VARIABLES, 1)),
-                    Text('', key=key1 + 'CHANGED_', size=(_Debugger.WIDTH_RESULTS, 1)), Button('Detail', key=key1 + 'DETAIL_'),
-                    Button('Obj', key=key1 + 'OBJ_') ]
+            return [
+                Text('    '),
+                Input(key=key1, size=(_Debugger.WIDTH_VARIABLES, 1)),
+                Text('', key=key1 + 'CHANGED_', size=(_Debugger.WIDTH_RESULTS, 1)),
+                Button('Detail', key=key1 + 'DETAIL_'),
+                Button('Obj', key=key1 + 'OBJ_')
+            ]
 
-        variables_frame = [_in_var('_VAR0_'),
-                           _in_var('_VAR1_'),
-                           _in_var('_VAR2_') ]
+        variables_frame = [_in_var(f'_VAR{i}_') for i in range(3)]
 
-        interactive_frame = [[Text('>>> '), Input(size=(83, 1), key='-REPL-',
-                                            tooltip='Type in any "expression" or "statement"\n and it will be disaplayed below.\nPress RETURN KEY instead of "Go"\nbutton for faster use'),
-                              Button('Go', bind_return_key=True, visible=True)],
-                             [Multiline(size=(93, 26), key='-OUTPUT-', autoscroll=True, do_not_clear=True)] ]
+        interactive_frame = [
+            [
+                Text('>>> '),
+                Input(size=(83, 1), key='-REPL-', tooltip='Type in any "expression" or "statement"\n and it will be disaplayed below.\nPress RETURN KEY instead of "Go"\nbutton for faster use'),
+                Button('Go', bind_return_key=True, visible=True)
+            ],
+            [Multiline(size=(93, 26), key='-OUTPUT-', autoscroll=True, do_not_clear=True)]
+        ]
 
-        autowatch_frame = [[Button('Choose Variables To Auto Watch', key='-LOCALS-'),
-                            Button('Clear All Auto Watches'),
-                            Button('Show All Variables', key='-SHOW_ALL-'),
-                            Button('Locals', key='-ALL_LOCALS-'),
-                            Button('Globals', key='-GLOBALS-'),
-                            Button('Popout', key='-POPOUT-')]]
+        autowatch_frame = [[
+            Button('Choose Variables To Auto Watch', key='-LOCALS-'),
+            Button('Clear All Auto Watches'),
+            Button('Show All Variables', key='-SHOW_ALL-'),
+            Button('Locals', key='-ALL_LOCALS-'),
+            Button('Globals', key='-GLOBALS-'),
+            Button('Popout', key='-POPOUT-')
+        ]]
 
         var_layout = [
             [
@@ -104,8 +111,13 @@ class _Debugger:
         ]
 
         # Tab based layout
-        layout = [[Text('Debugging: ' + self._find_users_code())],
-                  [TabGroup([[Tab('Variables', col1), Tab('REPL & Watches', col2)]])]]
+        layout = [
+            [Text('Debugging: ' + self._find_users_code())],
+            [TabGroup([[
+                Tab('Variables', col1),
+                Tab('REPL & Watches', col2)
+            ]])]
+        ]
 
         # ------------------------------- Create main window -------------------------------
         window = Window("PySimpleGUI Debugger", layout, icon=PSG_DEBUGGER_LOGO, margins=(0, 0), location=location, keep_on_top=True, right_click_menu=[[''], ['Exit']])
@@ -165,7 +177,7 @@ class _Debugger:
             var = values[f"_VAR{event[4]}_"]
             try:
                 result = obj_to_string_single_obj(mylocals[var])
-            except Exception as e:
+            except Exception:
                 try:
                     result = eval(f"{var}", myglobals, mylocals)
                     result = obj_to_string_single_obj(result)
