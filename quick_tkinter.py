@@ -55,6 +55,7 @@ from functools import wraps
 from hashlib import sha256 as hh
 from math import floor
 from tkinter import filedialog, ttk
+from typing import override
 
 from PIL import ImageGrab
 
@@ -484,11 +485,13 @@ class ConstantNamespaceMeta(type):
         type.__setattr__(cls, "_names", names) # cannot use cls._constants since immutable
         type.__setattr__(cls, "_values", values) # cannot use cls._constants since immutable
         return cls
-    
+
+    @override
     def __setattr__(cls, name, value):
         error_msg = f"{cls.__name__} is immutable"
         raise AttributeError(error_msg)
 
+    @override
     def __delattr__(cls, name):
         error_msg = f"{cls.__name__} is immutable"
         raise AttributeError(error_msg)
@@ -1946,7 +1949,7 @@ class Element[widget_type: tk.Widget](ABC):
         widget = alternate_widget if alternate_widget is not None else self.widget
         # if the widget is already invisible (i.e. not packed) then will get an error
         try:
-            if self.parent_form._get_layout_type() == Container.GRID:
+            if self.parent_form.layout_type == Container.GRID:
                 self.layout_settings = widget.grid_info()
                 widget.grid_forget()
             else:  # Window.PACK
@@ -1970,7 +1973,7 @@ class Element[widget_type: tk.Widget](ABC):
 
         widget = alternate_widget if alternate_widget is not None else self.widget
         if widget is not None:
-            if self.parent_form._get_layout_type() == Container.GRID:
+            if self.parent_form.layout_type == Container.GRID:
                 widget.grid(**self.layout_settings)
             else:  # Window.PACK
                 widget.pack(**self.layout_settings)
@@ -2193,17 +2196,20 @@ class Element[widget_type: tk.Widget](ABC):
     def _modify_config_dict(self, config_dict):  # noqa: B027
         pass
 
+    @typing.final
     def _get_default_pack_dict(self):
-        expand, fill = self._add_expansion()
+        """
+        Returns the default pack dict, that is shared by almost all Elements.
+        
+        This is a typing.final method and cannot be overwritten.
+        """
         return {
-            'side': tk.LEFT,
             'padx': self.pad[0],
             'pady': self.pad[1],
-            'expand': expand,
-            'fill': fill
+            **self._add_expansion()
         }
     
-    def _modify_pack_dict(self, pack_dict):  # noqa: B027
+    def _modify_pack_dict(self, pack_dict:dict[str]):  # noqa: B027
         pass
 
     def _pre_pack(self):  # noqa: B027
@@ -2261,7 +2267,10 @@ class Element[widget_type: tk.Widget](ABC):
         self._modify_pack_dict(pack_dict)
 
         if not isinstance(self, Tab):
-            self._widget_to_pack.pack(**pack_dict)
+            if self.parent_form.layout_type == Container.GRID:
+                self._widget_to_pack.grid(**pack_dict)
+            else:
+                self._widget_to_pack.pack(**pack_dict)
         else:
             # Tabs are packed from their TabGroup instead of packing themselves
             self.parent_form.widget.add(self._widget, **pack_dict)
@@ -2351,12 +2360,28 @@ class Element[widget_type: tk.Widget](ABC):
         # self.parent_frame.bind_all("<MouseWheel>", self.yscroll_old, add="+")
         # self.parent_frame.bind_all("<Shift-MouseWheel>", self.xscroll_old, add="+")
 
-    def _add_expansion(self):
+    def _add_expansion(self) -> dict[str]:
+        """Returns a dict with the pack/grid settings determaning the location (within its allocated space) and stretching behaviour."""
+        if self.parent_form.layout_type == Container.GRID:
+            res = ''
+            if self.expand_y:
+                res += 'ns'
+            if self.expand_x:
+                res += 'e'
+            res += 'w'
+            return {
+                'sticky': res,
+                'column': self._col,
+                'columnspan': self._col_span,
+                'row': self._row,
+                'rowspan': self._row_span
+            }
+
         self.should_expand = True
         if self.expand_x and self.expand_y:
             self.fill = tk.BOTH
-            self.tk_parent_frame.row_should_expand = True
             self.tk_parent_frame.row_fill_direction = tk.BOTH
+            self.tk_parent_frame.row_should_expand = True
         elif self.expand_x:
             self.fill = tk.X
             self.tk_parent_frame.row_fill_direction = tk.X if self.tk_parent_frame.row_fill_direction == tk.NONE else tk.BOTH if self.tk_parent_frame.row_fill_direction == tk.Y else tk.X
@@ -2367,7 +2392,12 @@ class Element[widget_type: tk.Widget](ABC):
         else:
             self.fill = tk.NONE
             self.should_expand = False
-        return self.should_expand, self.fill
+
+        return {
+            'side': tk.LEFT,
+            'expand':self.should_expand,
+            'fill': self.fill
+        }
     
     def _add_right_click_menu_and_grab(self):
         if self.right_click_menu == Menu.RIGHT_CLICK_DISABLED:
@@ -2495,27 +2525,21 @@ class Container(ABCWholeMro):
         if layout_type not in {self.GRID, self.PACK}:
             error_message = f'{layout_type} is not a valid layout type, only `Container.GRID` and `Container.PACK` are allowed.'
             raise ValueError(error_message)
-        self.layout_type = layout_type
+        self._layout_type = layout_type
 
         if not isinstance(self, Window):
             self._verified_rows(self.rows)
 
         super().__init__(*args, **kwargs)
 
-    def _get_layout_type(self) -> str:
+    @property
+    def layout_type(self) -> str:
         """Returns the layout type."""
-        if isinstance(self, Window):
-            return self.layout_type
-        
-        if isinstance(self, Element):
-            return self.toplevel_form.layout_type
-    
-        error_message = 'Container was neither `Element` nor `Window`.'
-        raise RuntimeError(error_message)
+        return self._layout_type
 
     def _add_child_to_layout(self, child:Element):
         """Adds the provided child Element to this container."""
-        if self._get_layout_type() == Container.GRID:
+        if self.layout_type == Container.GRID:
             # expand = 'nsew'  # implement streching and default sticky
             child.widget.grid(column=self._current_col, columnspan=child._col_span, row=self._current_row, rowspan=child._row_span,
                               padx=child.pad[0], pady=child.pad[1])
@@ -2535,7 +2559,7 @@ class Container(ABCWholeMro):
         # WARNING - You can't use print in this function. If the user has rerouted    #
         # stdout then there will be an error saying the window isn't finalized        #
         # --------------------------------------------------------------------------- #
-        use_row_frames = self._get_layout_type() == Container.PACK
+        use_row_frames = self.layout_type == Container.PACK
 
         for row in self.rows:
             if self.element_justification is not None:
@@ -2748,10 +2772,12 @@ class Container(ABCWholeMro):
 
 class _InputElement[widget_type: tk.Widget](Element[widget_type]):
     """ Elements where the user can enter text. """
+    @override
     @property
     def background_color(self):
         return self._background_color or DEFAULTS.INPUT_ELEMENTS_BACKGROUND_COLOR
 
+    @override
     @property
     def text_color(self):
         return self._text_color or DEFAULTS.INPUT_TEXT_COLOR
@@ -2770,6 +2796,7 @@ class _InputElementReadonlyable[widget_type: tk.Widget](_InputElement[widget_typ
         self.readonly = readonly
         self.update_state()
 
+    @override
     def update_disabled(self, *, disabled:bool):
         self._disabled = disabled
         self.update_state()
@@ -2793,6 +2820,7 @@ class _InputElementReadonlyable[widget_type: tk.Widget](_InputElement[widget_typ
         self._update_single('foreground', text_color)
         self._update_single('state', state)
     
+    @override
     def _post_pack(self):
         if self.read_only:
             self._widget['state'] = 'readonly'
@@ -2847,6 +2875,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
 
         super().__init__(**kwargs)
 
+    @override
     def update(self, value=None, disabled=None, select=None, visible=None, text_color=None, background_color=None, font=None, move_cursor_to='end', password_char=None, paste=None, readonly=None):
         """
         Changes some of the settings for the Input Element. Must call `Window.Read` or `Window.Finalize` prior.
@@ -2946,6 +2975,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
         print("Use of entry_obj.TKEntry is depricated, use entry_obj.widget instead")
         return self._widget
     
+    @override
     def _create_widget(self):
         """Creates the tk widget."""
         self.tk_string_var = tk.StringVar(value=self.default_text)
@@ -2966,6 +2996,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
             justify=justify
         )
 
+    @override
     def _modify_config_dict(self, config_dict):
         if self.selected_background_color not in (None, COLOR_SYSTEM_DEFAULT):
             config_dict['selectbackground'] = self.selected_background_color
@@ -2982,6 +3013,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
         if self._disabled_readonly_text_color not in (None, COLOR_SYSTEM_DEFAULT) and self._disabled:
             config_dict['fg'] = self._disabled_readonly_text_color
 
+    @override
     def _post_pack(self):
         if self.focus is True or (self._toplevel_form.use_default_focus and not self._toplevel_form.focus_set):
             self._toplevel_form.focus_set = True
@@ -2999,6 +3031,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
         except Exception:
             return ''
     
+    @override
     def _build_results(self):
         self._toplevel_form.add_return_value(self, self.get())
         if not (self._toplevel_form.non_blocking
@@ -3052,6 +3085,7 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
 
         super().__init__(**kwargs)
 
+    @override
     def update(self, value=None, values=None, set_to_index=None, disabled=None, readonly=None, font=None, visible=None, size=(None, None), select=None, text_color=None, background_color=None):
         """
         Changes some of the settings for the Combo Element. Must call `Window.Read` or `Window.Finalize` prior.
@@ -3220,6 +3254,7 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
         print("Use of combo_obj.tk_combo is depricated, use combo_obj.widget instead")
         return self._widget
 
+    @override
     def _create_widget(self):
         max_line_len = max([len(str(val)) for val in self.values]) if len(self.values) else 0
         width = max_line_len + 1 if self.auto_size_text is True else self.size[0]
@@ -3229,6 +3264,7 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
         if self.default_value is not None:
             self._widget.set(self.default_value)
 
+    @override
     def _get_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -3260,10 +3296,12 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
 
         return config_dict, map_dict
 
+    @override
     def _modify_config_dict(self, config_dict):
         if self._size[1] != 1 and self._size[1] is not None:
             config_dict['height'] = self.size[1]
 
+    @override
     def _post_pack(self):
         # Strange code that is needed to set the font for the drop-down list
         self._dropdown_newfont = _font.Font(font=self.font)
@@ -3282,6 +3320,7 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
             self._toplevel_form.focus_set = True
             self._widget.focus_set()
 
+    @override
     def _set_default_binds(self):
         # Chr0nic
         self._widget.bind("<Enter>", lambda event, em=self: self.test_mouse_hook2(em))
@@ -3294,112 +3333,6 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
         if self.enable_per_char_events:
             self._widget.bind('<Key>', self._keyboard_handler)
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def pack_(self):
-        max_line_len = max([len(str(val)) for val in self.values]) if len(self.values) else 0
-        width = max_line_len + 1 if self.auto_size_text is True else self.size[0]
-        self.tk_string_var = tk.StringVar()
-        style_name = _make_ttk_style_name(base_style='.TCombobox', element=self, primary_style=True)
-        combostyle = ttk.Style()
-        self.ttk_style = combostyle
-        _change_ttk_theme(combostyle, self._toplevel_form.ttk_theme)
-
-        # Creates a unique name for each field element(Sure there is a better way to do this)
-        # unique_field = _make_ttk_style_name('.TCombobox.field', element)
-
-        # Set individual widget options
-        try:
-            if self._text_color not in (None, COLOR_SYSTEM_DEFAULT):
-                combostyle.configure(style_name, foreground=self._text_color)
-                combostyle.configure(style_name, selectbackground=self._text_color)
-                combostyle.configure(style_name, insertcolor=self._text_color)
-                combostyle.map(style_name, fieldforeground=[('readonly', self._text_color)])
-            if self.background_color not in (None, COLOR_SYSTEM_DEFAULT):
-                combostyle.configure(style_name, selectforeground=self.background_color)
-                combostyle.map(style_name, fieldbackground=[('readonly', self.background_color)])
-                combostyle.configure(style_name, fieldbackground=self.background_color)
-
-            if self.button_arrow_color not in (None, COLOR_SYSTEM_DEFAULT):
-                combostyle.configure(style_name, arrowcolor=self.button_arrow_color)
-            if self.button_background_color not in (None, COLOR_SYSTEM_DEFAULT):
-                combostyle.configure(style_name, background=self.button_background_color)
-            if self.read_only is True:
-                if self._text_color not in (None, COLOR_SYSTEM_DEFAULT):
-                    combostyle.configure(style_name, selectforeground=self._text_color)
-                if self.background_color not in (None, COLOR_SYSTEM_DEFAULT):
-                    combostyle.configure(style_name, selectbackground=self.background_color)
-        except Exception as e:
-            _error_popup_with_traceback(f"Combo Element error {e}",
-                                        f"Combo element key: {self._key}",
-                                        "One of your colors is bad. Check the text, background, button background and button arrow colors",
-                                        f"Parent Window's Title: {self._toplevel_form.title}")
-
-        # Strange code that is needed to set the font for the drop-down list
-        self._dropdown_newfont = _font.Font(font=self.font)
-        self.tk_parent_frame.option_add("*TCombobox*Listbox*Font", self._dropdown_newfont)
-
-        self._widget = ttk.Combobox(self.tk_parent_frame, width=width, textvariable=self.tk_string_var, font=self.font, style=style_name)
-
-        # make tcl call to deal with colors for the drop-down formatting
-        try:
-            if self.background_color not in (None, COLOR_SYSTEM_DEFAULT) and self._text_color not in (None, COLOR_SYSTEM_DEFAULT):
-                self._widget.tk.eval(
-                    f"[ttk::combobox::PopdownWindow {self._widget}].f.l configure -foreground {self._text_color} -background {self.background_color} -selectforeground {self.background_color} -selectbackground {self._text_color}"
-                )
-        except Exception:
-            pass    # going to let this one slide
-
-        # Chr0nic
-        self._widget.bind("<Enter>", lambda event, em=self: self.test_mouse_hook2(em))
-        self._widget.bind("<Leave>", lambda event, em=self: self.test_mouse_unhook2(em))
-
-        if self._toplevel_form.use_default_focus and not self._toplevel_form.focus_set:
-            self._toplevel_form.focus_set = True
-            self._widget.focus_set()
-
-        if self._size[1] != 1 and self._size[1] is not None:
-            self._widget.configure(height=self.size[1])
-        self._widget['values'] = self.values
-        expand, fill = self._add_expansion()
-        self._widget.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
-        if self.visible is False:
-            self._hide_and_save_layout_settings()
-            # element.TKCombo.pack_forget()
-        if self.default_value is not None:
-            self._widget.set(self.default_value)
-            # for i, v in enumerate(element.Values):
-            #     if v == element.DefaultValue:
-            #         element.TKCombo.current(i)
-            #         break
-        # elif element.Values:
-        #     element.TKCombo.current(0)
-        if self.enable_events:
-            self._widget.bind('<<ComboboxSelected>>', self._combobox_select_handler)
-            # self.tk_string_var.trace_add(mode='write', callback=self._combobox_select_handler)
-        if self.bind_return_key:
-            self._widget.bind('<Return>', self._combobox_select_handler)
-        if self.enable_per_char_events:
-            self._widget.bind('<Key>', self._keyboard_handler)
-        if self.read_only:
-            self._widget['state'] = 'readonly'
-        if self._disabled is True:  # note overrides readonly if disabled
-            self._widget['state'] = 'disabled'
-        if self.tooltip is not None:
-            self.tooltip_object = _ToolTip(self._widget, text=self.tooltip, timeout=DEFAULTS.TOOLTIP_TIME)
-        self._add_right_click_menu_and_grab()
-
 
 # ---------------------------------------------------------------------- #
 #                           Option Menu                                  #
@@ -3428,6 +3361,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
 
         super().__init__(**kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, value=None, values=None, disabled=None, visible=None, size=(None, None)):
         """
@@ -3494,6 +3428,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
         if visible is not None:
             self._visible = visible
 
+    @override
     def _build_results(self):
         self._toplevel_form.add_return_value(self, self.tk_string_var.get())
         
@@ -3503,6 +3438,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
         print("Use of option_menu_obj.TKOptionMenu is depricated, use option_menu_obj.widget instead")
         return self._widget
 
+    @override
     def _create_widget(self):
         self.tk_string_var = tk.StringVar()
         if self.default_value:
@@ -3515,6 +3451,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
             command=command
         )  # need to set command here since it cannot be changed via configure()
 
+    @override
     def _modify_config_dict(self, config_dict):
         max_line_len = max([len(str(val)) for val in self.values])
         width = max_line_len if self.auto_size_text is True else self.size[0]
@@ -3529,6 +3466,7 @@ class OptionMenu(_InputElement[tk.OptionMenu]):
         if self._text_color not in {None, COLOR_SYSTEM_DEFAULT}:
             menu.config(fg=self._text_color)
 
+    @override
     def _post_pack(self):
         self.right_click_menu = Menu.RIGHT_CLICK_DISABLED
     
@@ -3594,6 +3532,7 @@ class Listbox(_InputElement[tk.Listbox]):
         self.no_scrollbar = no_scrollbar
         self.horizontal_scroll = horizontal_scroll
 
+    @override
     def update(self, values=None, disabled=None, set_to_index=None, scroll_to_index=None, select_mode=None, visible=None, font=None, text_color=None, background_color=None):
         """
         Changes some of the settings for the Listbox Element. Must call `Window.read` or `Window.finalize` prior
@@ -3760,6 +3699,7 @@ class Listbox(_InputElement[tk.Listbox]):
         print('Usage of listbox_obj.tk_listbox is depricated! Use listbox_obj.widget instead.')
         return self._widget
         
+    @override
     def _create_widget(self):
         max_line_len = max([len(str(val)) for val in self.values]) if len(self.values) else 0
         width = max_line_len if self.auto_size_text else self.size[0]
@@ -3776,17 +3716,20 @@ class Listbox(_InputElement[tk.Listbox]):
             justify=self.tk_justification
         )
     
+    @override
     def _modify_config_dict(self, config_dict):
         if self.highlight_background_color not in {None, COLOR_SYSTEM_DEFAULT}:
             config_dict['selectbackground'] = self.highlight_background_color
         if self.highlight_text_color not in {None, COLOR_SYSTEM_DEFAULT}:
             config_dict['selectforeground'] = self.highlight_text_color
         
+    @override
     def _modify_pack_dict(self, pack_dict):
         # padding is added in the element_frame
         pack_dict.pop('padx')
         pack_dict.pop('pady')
     
+    @override
     def _pre_pack(self):
         for index, item in enumerate(self.values):
             self._widget.insert(tk.END, item)
@@ -3804,11 +3747,12 @@ class Listbox(_InputElement[tk.Listbox]):
             self._widget.configure(xscrollcommand=self.hsb.set)
             self.hsb.pack(side=tk.BOTTOM, fill='x')
     
+    @override
     def _post_pack(self):
-        expand, fill = self._add_expansion()
-        self.element_frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
+        self.element_frame.pack(padx=self.pad[0], pady=self.pad[1], **self._add_expansion())
 
     # overload instead of using _set_custom_binds() since the logic is completely different
+    @override
     def _set_default_binds(self):
         if self.enable_events:
             self._widget.bind('<<ListboxSelect>>', self._listbox_select_handler)
@@ -3902,6 +3846,7 @@ class Radio(Element[tk.Radiobutton]):
 
         super().__init__(text_color=text_color, background_color=background_color, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, value=None, text=None, background_color=None, text_color=None, circle_color=None, disabled=None, visible=None):
         """
@@ -4004,6 +3949,7 @@ class Radio(Element[tk.Radiobutton]):
         print('Usage of radio_obj.TKRadio is depricated! Use radio_obj.widget instead.')
         return self._widget
     
+    @override
     def _create_widget(self):
         width = 0 if self.auto_size_text else self.size[0]
         default_value = self.initial_state
@@ -4034,6 +3980,7 @@ class Radio(Element[tk.Radiobutton]):
             font=self.font
         )
     
+    @override
     def _get_default_configure_dict(self):
         res = {}
 
@@ -4118,6 +4065,7 @@ class Checkbox(Element[tk.Checkbutton]):
         """
         return bool(self.tk_int_var.get())
     
+    @override
     @_ensure_widget_created
     def update(self, value=None, text=None, background_color=None, text_color=None, checkbox_color=None, disabled=None, visible=None):
         """
@@ -4199,6 +4147,7 @@ class Checkbox(Element[tk.Checkbutton]):
         print('Using checkbox_obj.TKCheckbutton is depricated! Use checkbox_obj.widget instea.')
         return self._widget
 
+    @override
     def _create_widget(self):
         width = 0 if self.auto_size_text else self.size[0]
         default_value = self.initial_state
@@ -4215,6 +4164,7 @@ class Checkbox(Element[tk.Checkbutton]):
             font=self.font
         )
 
+    @override
     def _modify_config_dict(self, config_dict):
         if self.enable_events:
             config_dict['command'] = self._checkbox_handler
@@ -4269,6 +4219,7 @@ class Spin(_InputElement[tk.Spinbox]):
 
         super().__init__(**kwargs)
 
+    @override
     def update(self, value=None, values=None, disabled=None, readonly=None, visible=None, font=None, text_color=None, background_color=None):
         """
         Changes some of the settings for the Spin Element. Must call `Window.Read` or `Window.Finalize` prior
@@ -4386,6 +4337,7 @@ class Spin(_InputElement[tk.Spinbox]):
         print('Usage of spin_obj.TKSpinBox is depricated. Use spin_obj.widget instead.')
         return self._widget
         
+    @override
     def _create_widget(self):
         width = 0 if self.auto_size_text else self.size[0]
         self.tk_string_var = tk.StringVar()
@@ -4400,6 +4352,7 @@ class Spin(_InputElement[tk.Spinbox]):
             bd=self.border_width
         )
 
+    @override
     def _modify_config_dict(self, config_dict):
         config_dict['font'] = self.font
         if self.button_background_color is not None:
@@ -4417,6 +4370,7 @@ class Spin(_InputElement[tk.Spinbox]):
         if self.read_only:
             config_dict['state'] = 'readonly'
     
+    @override
     def _set_default_binds(self):
         if self.bind_return_key:
             self._widget.bind('<Return>', self._spinbox_select_handler)
@@ -4505,6 +4459,7 @@ class Multiline(_InputElement[tk.Text]):
 
         super().__init__(**kwargs)
 
+    @override
     def update(self, value=None, *, disabled=None, append=False, font=None, text_color=None, background_color=None, text_color_for_value=None,
                background_color_for_value=None, visible=None, autoscroll=None, justification=None, font_for_value=None):
         """
@@ -4620,6 +4575,7 @@ class Multiline(_InputElement[tk.Text]):
             return value.rstrip()
         return value
 
+    @override
     def _build_results(self):
         if self.write_only:  # if marked as "write only" when created, then don't include with the values being returned
             return
@@ -4782,12 +4738,14 @@ class Multiline(_InputElement[tk.Text]):
         print('Using multiline_obj.tk_text is deprecated! Use multiline_obj.widget instead.')
         return self._widget
     
+    @override
     def _create_widget(self):
         width, height = self.size
         bd = self.border_width
         self.element_frame = tk.Frame(self.tk_parent_frame)
         self._widget = tk.Text(self.element_frame, width=width, height=height,  bd=bd, font=self.font, relief=RELIEFS.SUNKEN)
 
+    @override
     def _modify_config_dict(self, config_dict):
         if self.horizontal_scroll:
             config_dict['wrap'] = 'none'
@@ -4809,6 +4767,7 @@ class Multiline(_InputElement[tk.Text]):
         if self.selected_text_color not in {None, COLOR_SYSTEM_DEFAULT}:
             config_dict['selectforeground'] = self.selected_text_color
 
+    @override
     def _set_default_binds(self):
         if not self.no_scrollbar or self.horizontal_scroll:
             self._widget.bind("<Enter>", lambda event, em=self: self.test_mouse_hook(em))
@@ -4822,6 +4781,7 @@ class Multiline(_InputElement[tk.Text]):
         if self.enter_submits:
             self._widget.bind('<Return>', self._return_key_handler)
         
+    @override
     def _pre_pack(self):
         if not self.no_scrollbar:
             _make_ttk_scrollbar(self, 'v', self._toplevel_form)
@@ -4856,15 +4816,15 @@ class Multiline(_InputElement[tk.Text]):
         # if DEFAULT_SCROLLBAR_COLOR not in (None, COLOR_SYSTEM_DEFAULT):               # only works on Linux so not including it
         #     element.TKText.vbar.config(troughcolor=DEFAULTS.SCROLLBAR_COLOR)
 
-            
+    @override
     def _modify_pack_dict(self, pack_dict):
         # padding is added in the element_frame
         pack_dict.pop('padx')
         pack_dict.pop('pady')
-            
+        
+    @override
     def _post_pack(self):
-        expand, fill = self._add_expansion()
-        self.element_frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], fill=fill, expand=expand)
+        self.element_frame.pack(padx=self.pad[0], pady=self.pad[1], **self._add_expansion())
 
         if self.focus is True or (self._toplevel_form.use_default_focus and not self._toplevel_form.focus_set):
             self._toplevel_form.focus_set = True
@@ -4903,6 +4863,7 @@ class Text(Element[tk.Text]):
 
         super().__init__(**kwargs)  # TODO: special default text/bg colors
 
+    @override
     @_ensure_widget_created
     def update(self, value=None, background_color=None, text_color=None, font=None, visible=None, tooltip=None):
         """
@@ -5148,7 +5109,7 @@ class Text(Element[tk.Text]):
 
         self._print_to_element(*args, end=end, sep=sep, text_color=kw_text_color, background_color=kw_background_color, justification=justification, autoscroll=autoscroll, font=font, append=append)
 
-
+    @override
     def _create_widget(self):
         """Creates the tk widget."""
         if self.auto_size_text is False:
@@ -5176,10 +5137,12 @@ class Text(Element[tk.Text]):
             font=self.font
         )
     
+    @override
     def _set_custom_binds(self):
         if self.enable_events:
             self._widget.bind('<Button-1>', self._text_clicked_handler)
     
+    @override
     def _modify_config_dict(self, config_dict:dict):
         wraplen = self.widget.winfo_reqwidth()  # width of widget in Pixels
         if self.auto_size_text or self.size[1] == 1:  # if just 1 line high, ensure no wrap happens
@@ -5212,6 +5175,7 @@ class StatusBar(Element[tk.Label]):
 
         super().__init__(**kwargs)  # TODO: special default text/bg colors
 
+    @override
     @_ensure_widget_created
     def update(self, value=None, background_color=None, text_color=None, font=None, visible=None):
         """
@@ -5257,7 +5221,7 @@ class StatusBar(Element[tk.Label]):
         if visible is not None:
             self._visible = visible
     
-
+    @override
     def _create_widget(self):
         """Creates the tk widget."""
         display_text = self.display_text  # text to display
@@ -5301,15 +5265,21 @@ class StatusBar(Element[tk.Label]):
             wraplength=wraplen
         )
     
+    @override
     def _modify_config_dict(self, config_dict):
         config_dict.pop('selectedforeground', None)
         config_dict.pop('selectedbackground', None)
         config_dict['relief'] = self.relief
 
+    @override
     def _modify_pack_dict(self, pack_dict):
-        pack_dict['fill'] = tk.X
-        pack_dict['expand'] = True
+        if self.parent_form.layout_type == Container.GRID:
+            pack_dict['sticky'] = 'ew'
+        else:
+            pack_dict['fill'] = tk.X
+            pack_dict['expand'] = True
 
+    @override
     def _set_custom_binds(self):
         if self.click_submits:
             self._widget.bind('<Button-1>', self._text_clicked_handler)
@@ -5801,6 +5771,7 @@ class Button(Element[tk.Button | ttk.Button]):
 
         return
 
+    @override
     @_ensure_widget_created
     def update(self, text=None, button_color=(None, None), disabled=None, image_source=None, image_data=None, image_filename=None,
                visible=None, image_subsample=None, image_zoom=None, disabled_button_color=(None, None), image_size=None):
@@ -5955,6 +5926,7 @@ class Button(Element[tk.Button | ttk.Button]):
         except Exception:
             print('Exception clicking button')
     
+    @override
     def _build_results(self):
         if self._toplevel_form.last_button_clicked == self._key:
             self._toplevel_form.event = self._key
@@ -5993,6 +5965,7 @@ class Button(Element[tk.Button | ttk.Button]):
                     pos = -1
         return pos, btext
     
+    @override
     def _create_widget(self):
         self.tk_string_var = tk.StringVar()
         
@@ -6069,7 +6042,7 @@ class Button(Element[tk.Button | ttk.Button]):
         
         return width, height, bc
     
-
+    @override
     def _get_style_dicts(self):
         config_dict = self._get_image_dict()
         map_dict = {}
@@ -6113,6 +6086,7 @@ class Button(Element[tk.Button | ttk.Button]):
         
         return config_dict, map_dict
 
+    @override
     def _get_default_configure_dict(self):
         """Returns the configure options that are unique to the tk.Button version."""
         if self.use_ttk_buttons:
@@ -6155,6 +6129,7 @@ class Button(Element[tk.Button | ttk.Button]):
     
         return conf_dict
 
+    @override
     def _modify_config_dict(self, config_dict):
         if self.b_type != Button.TYPE.REALTIME:
             config_dict['command'] = self._button_call_back
@@ -6163,6 +6138,7 @@ class Button(Element[tk.Button | ttk.Button]):
         if pos != -1:
             config_dict['underline'] = pos
 
+    @override
     def _post_pack(self):
         # for both tk and ttk buttons
         if self.focus is True or (self._toplevel_form.use_default_focus and not self._toplevel_form.focus_set):
@@ -6170,6 +6146,7 @@ class Button(Element[tk.Button | ttk.Button]):
             self._widget.focus_set()
             self._toplevel_form.tk_root.focus_force()
     
+    @override
     def _set_default_binds(self):
         if self.bind_return_key:
             self._widget.bind('<Return>', self._return_key_handler)
@@ -6257,14 +6234,17 @@ class ButtonMenu(Element[tk.Menubutton]):
         super().__init__(**kwargs)
 
 
+    @override
     @property
     def background_color(self):
         return self._background_color if self._background_color is not None else theme_input_element_background_color()
 
+    @override
     @property
     def text_color(self):
         return self._text_color if self._text_color is not None else theme_input_text_color()
 
+    @override
     def _menu_item_chosen_callback(self, item_chosen):  # ButtonMenu Menu Item Chosen Callback
         """
         Not a user callable function.  Called by tkinter when an item is chosen from the menu.
@@ -6278,6 +6258,7 @@ class ButtonMenu(Element[tk.Menubutton]):
         self.parent_form_for_buttons.form_remained_open = True
         _exit_mainloop(self.parent_form_for_buttons)
 
+    @override
     @_ensure_widget_created
     def update(self, menu_definition=None, visible=None, image_source=None, image_size=(None, None), image_subsample=None, image_zoom=None, button_text=None, button_color=None):
         """
@@ -6387,6 +6368,7 @@ class ButtonMenu(Element[tk.Menubutton]):
         except Exception:
             print('Exception clicking button')
     
+    @override
     def _build_results(self):
         res = self.menu_item_chosen
         if not self.part_of_custom_menubar:
@@ -6419,6 +6401,7 @@ class ButtonMenu(Element[tk.Menubutton]):
         print('Using buttonmenu_obj.TKButton is depricated! Use buttonmenu_obj.widget instead.')
         return self._widget
 
+    @override
     def _create_widget(self):
         btext = self.button_text
         if self.auto_size_button is not None:
@@ -6435,6 +6418,7 @@ class ButtonMenu(Element[tk.Menubutton]):
             self.item_font = self.font
         self._widget = tk.Menubutton(self.tk_parent_frame, text=btext, width=width, height=height, justify=tk.LEFT, bd=bd, font=self.font)
         
+    @override
     def _get_default_configure_dict(self):
         conf_dict = {}
         if self.button_color not in ((None, None), DEFAULTS.BUTTON_COLOR):
@@ -6484,9 +6468,11 @@ class ButtonMenu(Element[tk.Menubutton]):
                 conf_dict['wraplength'] = wraplen + 10  # set wrap to width of widget
         return conf_dict
     
+    @override
     def _set_default_binds(self):
         pass
         
+    @override
     def _post_pack(self):
         menu_def = self.menu_definition
 
@@ -6574,6 +6560,7 @@ class ProgressBar(Element):
             return False
         return True
 
+    @override
     @_ensure_widget_created
     def update(self, current_count=None, max_value=None, bar_color=None, visible=None):
         """
@@ -6630,6 +6617,7 @@ class ProgressBar(Element):
             return False
         return True
 
+    @override
     def _create_widget(self):
         if self.size_px != (None, None):
             progress_length = self.size_px[0]
@@ -6654,6 +6642,7 @@ class ProgressBar(Element):
             mode='determinate'
         )
 
+    @override
     def _get_style_dicts(self):
         config_dict = {}
 
@@ -6715,6 +6704,7 @@ class Image(Element[tk.Label]):
 
         super().__init__(**kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, source=None, filename=None, data=None, size=(None, None), subsample=None, zoom=None, visible=None):
         """
@@ -6911,9 +6901,11 @@ class Image(Element[tk.Label]):
         print('Using image_obj.tktext_label is depricated! Use image_obj.sidget instead.')
         return self._widget
     
+    @override
     def _create_widget(self):
         self._widget = tk.Label(self.tk_parent_frame, bd=0)
     
+    @override
     def _modify_config_dict(self, config_dict):
         config_dict.pop('foreground')
         config_dict.pop('highlightthickness')
@@ -6949,6 +6941,7 @@ class Image(Element[tk.Label]):
 
         self._widget.image = photo
 
+    @override
     def _set_default_binds(self):
         if self.enable_events and self._widget is not None:
             self._widget.bind('<ButtonPress-1>', self._click_handler)
@@ -6968,6 +6961,7 @@ class Canvas(Element[tk.Canvas]):
 
         super().__init__(**kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self,  background_color=None, visible=None):
         """
@@ -7007,12 +7001,15 @@ class Canvas(Element[tk.Canvas]):
         print('Using canvas_obj.TKCanvas is depricated! Use canvas_obj.widget instead.')
         return self._widget
 
+    @override
     def _set_default_binds(self):
         pass  # TODO: why no binds?
 
+    @override
     def _modify_config_dict(self, config_dict):
         config_dict.pop('foreground')
 
+    @override
     def _create_widget(self):
         if self._widget is None:
             width, height = self.size
@@ -7067,6 +7064,7 @@ class Graph(Element[tk.Canvas]):
 
         super().__init__(size=canvas_size, **kwargs)
 
+    @override
     def _build_results(self):
         self._toplevel_form.add_return_value(self, self.click_position)
 
@@ -7451,6 +7449,7 @@ class Graph(Element[tk.Canvas]):
         except Exception:
             pass
 
+    @override
     @_ensure_widget_created
     def update(self, background_color=None, visible=None):
         """
@@ -7661,6 +7660,7 @@ class Graph(Element[tk.Canvas]):
 
         self.click_position = self._convert_canvas_xy_to_xy(event.x, event.y)
 
+    @override
     def _user_bind_callback(self, bind_string, event, *, propagate=True):
         """
         Used when user binds a tkinter event directly to an element.
@@ -7675,6 +7675,7 @@ class Graph(Element[tk.Canvas]):
         self._update_position_for_returned_values(event)
         return super()._user_bind_callback(bind_string, event, propagate=propagate)
 
+    @override
     def _right_click_menu_callback(self, event):
         """
         Callback function that's called when a right click happens, shows right click menu as result.
@@ -7685,6 +7686,7 @@ class Graph(Element[tk.Canvas]):
         super()._right_click_menu_callback(event)
         self._update_position_for_returned_values(event)
 
+    @override
     def set_size(self, size=(None, None)):
         """
         Changes the size of an element to a specific size.
@@ -7732,6 +7734,7 @@ class Graph(Element[tk.Canvas]):
         print('Using graph_obj._TKCanvas2 is deprecated! Use graph_obj.widget instead.')
         return self._widget
 
+    @override
     def _create_widget(self):
         width, height = self.size
         self._widget = tk.Canvas(
@@ -7741,12 +7744,15 @@ class Graph(Element[tk.Canvas]):
             bd=self.border_width
         )
     
+    @override
     def _modify_config_dict(self, config_dict):
         config_dict.pop('foreground')
 
+    @override
     def _post_pack(self):
         self._widget.addtag_all('mytag')
 
+    @override
     def _set_default_binds(self):
         if self.enable_events:
             self._widget.bind('<ButtonRelease-1>', self._button_release_callback)
@@ -7801,6 +7807,7 @@ class Frame(Container, Element[tk.Frame]):
 
         super().__init__(layout=layout, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, value=None, visible=None):
         """
@@ -7844,9 +7851,11 @@ class Frame(Container, Element[tk.Frame]):
         print("Use of frame_obj.TKFrame is depricated, use frame_obj.widget instead")
         return self._widget
 
+    @override
     def _create_widget(self):
         self._widget = tk.LabelFrame(self.tk_parent_frame, text=self.title, relief=self.relief)
         
+    @override
     def _modify_config_dict(self, config_dict:dict):
         if self._size != (None, None):
             self._widget.config(width=self.size[0], height=self.size[1])
@@ -7866,10 +7875,11 @@ class Frame(Container, Element[tk.Frame]):
         else:
             config_dict.pop('foreground', None)
     
+    @override
     def _modify_pack_dict(self, pack_dict):
         if self.vertical_alignment is None:
             return
-        
+
         anchor = tk.CENTER  # Default to center if a bad choice is made
         if self.vertical_alignment.lower().startswith('t'):
             anchor = tk.N
@@ -7877,8 +7887,17 @@ class Frame(Container, Element[tk.Frame]):
             anchor = tk.CENTER
         if self.vertical_alignment.lower().startswith('b'):
             anchor = tk.S
-        pack_dict['anchor'] = anchor
 
+        if self.parent_form.layout_type == Container.PACK:
+            pack_dict['anchor'] = anchor
+            return
+
+        if anchor == tk.CENTER or anchor in pack_dict['sticky']:
+            return
+
+        pack_dict['sticky'] = f'{anchor}{pack_dict['sticky']}'
+
+    @override
     def _pre_pack(self):
         self._pack_contained_elements(self._widget, self.toplevel_form)
 
@@ -7899,18 +7918,24 @@ class Separator(Element):
         self.orientation = orientation
         super().__init__(**kwargs)
     
+    @override
     def _create_widget(self):
         self.ttk_style_name = _make_ttk_style_name(base_style=".Line.TSeparator", element=self, primary_style=True)
         self._widget = ttk.Separator(self.tk_parent_frame, orient=self.orientation, style=self.ttk_style_name)
 
+    @override
     def _get_style_dicts(self):
         if self.text_color not in (None, COLOR_SYSTEM_DEFAULT):
             return {'background': self.text_color}, {}
         return {}, {}
 
+    @override
     def _modify_pack_dict(self, pack_dict):
-        pack_dict['fill']   = tk.X if self.orientation.startswith('h') else tk.Y
-        pack_dict['expand'] = True if self.orientation.startswith('h') else False  # noqa: SIM210
+        if self.parent_form.layout_type == Container.GRID:
+            pack_dict['sticky'] = 'ew' if self.orientation.startswith('h') else 'ns'
+        else:
+            pack_dict['fill']   = tk.X if self.orientation.startswith('h') else tk.Y
+            pack_dict['expand'] = True if self.orientation.startswith('h') else False  # noqa: SIM210
 
 
 # ---------------------------------------------------------------------- #
@@ -7954,20 +7979,27 @@ class Sizegrip(Element):
 
         super().__init__(**kwargs)
 
+    @override
     def _create_widget(self):
         self.ttk_style_name = "Sizegrip.TSizegrip"
         self._widget = ttk.Sizegrip(self.tk_parent_frame, style=self.ttk_style_name)
         self._toplevel_form.sizegrip_widget = self._widget
 
+    @override
     def _get_style_dicts(self):
         return {'background': self._toplevel_form.tk_root['bg'] if self.background_color == COLOR_SYSTEM_DEFAULT else self.background_color}, {}
     
+    @override
     def _modify_pack_dict(self, pack_dict):
-        pack_dict['side'] = tk.BOTTOM
-        pack_dict['anchor'] = 'se'
-        pack_dict['fill'] = tk.X
-        pack_dict['expand'] = True
+        if self.parent_form.layout_type == Container.GRID:
+            pack_dict['sticky'] = 'sew'
+        else:
+            pack_dict['side'] = tk.BOTTOM
+            pack_dict['anchor'] = 'se'
+            pack_dict['fill'] = tk.X
+            pack_dict['expand'] = True
 
+    @override
     def _post_pack(self):
         # tricky part of sizegrip... it shouldn't cause the row to expand, but should expand and should add X axis if
         # not already filling in that direction.  Otherwise, leaves things alone!
@@ -8029,6 +8061,7 @@ class Tab(Container, Element[tk.Frame]):
 
         super().__init__(layout=layout, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, title=None, disabled=None, visible=None):
         """
@@ -8095,9 +8128,11 @@ class Tab(Container, Element[tk.Frame]):
         print('Using frame_obj.TKFrame is deprecated! Use frame_obj.widget instead.')
         return self._widget
 
+    @override
     def _create_widget(self):
         self._widget = tk.Frame(self.parent_form.widget)
     
+    @override
     def _get_default_configure_dict(self):
         if self.background_color not in {COLOR_SYSTEM_DEFAULT, None}:
             return {
@@ -8107,21 +8142,22 @@ class Tab(Container, Element[tk.Frame]):
             }
         return {}
 
-
+    @override
     def _pre_pack(self):
         self._pack_contained_elements(self._widget, self.toplevel_form)
     
-    def _get_default_pack_dict(self):
-        pack_dict = {'text': self.title}
+    @override
+    def _modify_pack_dict(self, pack_dict):
+        pack_dict.clear()  # non of the standard settings are needed for Tabs
+
+        pack_dict['text'] = self.title
         state = 'normal'
         if self._disabled:
             state = 'disabled'
         if self.visible is False:
             state = 'hidden'
         pack_dict['state'] = state
-        return pack_dict
 
-    def _modify_pack_dict(self, pack_dict):
         if self.filename is None and self.data is None:
             return
         
@@ -8145,6 +8181,7 @@ class Tab(Container, Element[tk.Frame]):
                                         f"Look in this Window's layout for an Image element that has a key of {self._key}",
                                         "The error occuring is", e)
 
+    @override
     def _post_pack(self):
         # can maybe remove? uncommenting has no effect
         # if photo is not None:
@@ -8346,6 +8383,7 @@ class TabGroup(Container, Element[ttk.Notebook]):
             tab_element.tooltip_object = _ToolTip(tab_element._widget, text=tab_element.tooltip, timeout=DEFAULTS.TOOLTIP_TIME)
         _add_right_click_menu(tab_element, form)
 
+    @override
     @_ensure_widget_created
     def update(self, visible=None):
         """
@@ -8373,6 +8411,7 @@ class TabGroup(Container, Element[ttk.Notebook]):
         print('Using tab_group_obj.TKNotebook is deprecated! Use tab_group_obj.widget instead.')
         return self._widget
 
+    @override
     def _get_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -8393,6 +8432,7 @@ class TabGroup(Container, Element[ttk.Notebook]):
         
         return config_dict, map_dict
     
+    @override
     def _get_additional_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -8414,16 +8454,19 @@ class TabGroup(Container, Element[ttk.Notebook]):
         
         return '.Tab', config_dict, map_dict
     
+    @override
     def _create_widget(self):
         custom_style = _make_ttk_style_name(base_style='.TNotebook', element=self, primary_style=True)
         self._widget = ttk.Notebook(self.tk_parent_frame, style=custom_style)
 
         self._pack_contained_elements(self.toplevel_form.tk_root, self.toplevel_form)
     
+    @override
     def _set_default_binds(self):
         if self.enable_events:
             self._widget.bind('<<NotebookTabChanged>>', self._tab_group_select_handler)
 
+    @override
     def _right_click_menu_callback(self, event):
         try:
             index = self._widget.index(f"@{event.x},{event.y}")
@@ -8489,6 +8532,7 @@ class Slider(Element[tk.Scale]):
 
         super().__init__(size=size, background_color=background_color, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, value=None, range=(None, None), disabled=None, visible=None):
         """
@@ -8555,6 +8599,7 @@ class Slider(Element[tk.Scale]):
         self.parent_form_for_buttons.form_remained_open = True
         _exit_mainloop(self.parent_form_for_buttons)
 
+    @override
     def _build_results(self):
         try:
             value = float(self._widget.get())
@@ -8569,6 +8614,7 @@ class Slider(Element[tk.Scale]):
         print('Using slider_obj.TKScale is depricated. Use slider_obj.widget instead.')
         return self._widget
     
+    @override
     def _create_widget(self):
         slider_length = self.size[0] * self._char_width_in_pixels(self.font)
         slider_width = self.size[1]
@@ -8597,6 +8643,7 @@ class Slider(Element[tk.Scale]):
             tickinterval=self.tick_interval
         )
         
+    @override
     def _modify_config_dict(self, config_dict):
         if self.enable_events:
             config_dict['command'] = self._slider_changed_handler
@@ -8777,6 +8824,7 @@ class Column(Container, Element[tk.Frame]):
 
         super().__init__(layout=layout, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, visible=None):
         """
@@ -8822,18 +8870,21 @@ class Column(Container, Element[tk.Frame]):
         print("Use of column_obj.TKColFrame is depricated, use column_obj.widget instead")
         return self._widget
     
+    @override
     @property
     def _widget_to_config(self):
         if self.scrollable:
             return self._canvas
         return self._widget
     
+    @override
     @property
     def _widget_to_pack(self):
         if self.scrollable:
             return self.element_frame
         return self._widget
 
+    @override
     def _create_widget(self):
         if self.scrollable:
             # ----------------------- SCROLLABLE Column ----------------------
@@ -8846,6 +8897,7 @@ class Column(Container, Element[tk.Frame]):
             self._widget = tk.Frame(self.tk_parent_frame)
             self._pack_contained_elements(self._widget, self.toplevel_form)
     
+    @override
     def _get_default_configure_dict(self):
         config_dict = {}
         
@@ -8873,6 +8925,7 @@ class Column(Container, Element[tk.Frame]):
 
         return config_dict
         
+    @override
     def _modify_pack_dict(self, pack_dict):
         if self.vertical_alignment is None:
             return
@@ -8885,9 +8938,18 @@ class Column(Container, Element[tk.Frame]):
             anchor = tk.CENTER
         if self.vertical_alignment.lower().startswith('b'):
             anchor = tk.S
+        
+        if self.parent_form.layout_type == Container.PACK:
+            pack_dict['anchor'] = anchor
+            return
 
-        pack_dict['anchor'] = anchor
+        if anchor == tk.CENTER or anchor in pack_dict['sticky']:
+            return
+
+        pack_dict['sticky'] = f'{anchor}{pack_dict['sticky']}'
+
     
+    @override
     def _set_default_binds(self):
         pass
 
@@ -8932,6 +8994,7 @@ class Pane(Container, Element[tk.PanedWindow]):
 
         super().__init__(layout=rows, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, visible=None):
         """
@@ -8964,6 +9027,7 @@ class Pane(Container, Element[tk.PanedWindow]):
         print('Using pane_obj.PanedWindow is depricated. Use pane_obj.widget instead.')
         return self._widget
     
+    @override
     def _create_widget(self):
         bd = self.border_width
         self._widget = tk.PanedWindow(
@@ -8973,6 +9037,7 @@ class Pane(Container, Element[tk.PanedWindow]):
             bd=bd
         )
 
+    @override
     def _get_default_configure_dict(self):
         res = {}
 
@@ -8989,6 +9054,7 @@ class Pane(Container, Element[tk.PanedWindow]):
 
         return res
     
+    @override
     def _pre_pack(self):
         self._pack_contained_elements(self._widget, self.toplevel_form)
         
@@ -9058,6 +9124,7 @@ class TKCalendar(ttk.Frame):
         # insert dates in the currently empty calendar
         self._build_calendar()
 
+    @override
     def __setitem__(self, item, value):
         if item in ('year', 'month'):
             error_msg = f"attribute '{item}' is not writeable"
@@ -9070,6 +9137,7 @@ class TKCalendar(ttk.Frame):
         else:
             ttk.Frame.__setitem__(self, item, value)
 
+    @override
     def __getitem__(self, item):
         if item in ('year', 'month'):
             return getattr(self._date, item)
@@ -9278,10 +9346,12 @@ class Menu(Element[tk.Menu]):
 
         super().__init__(**kwargs)
 
+    @override
     @property
     def text_color(self):
         return self._text_color if self._text_color is not None else theme_input_text_color()
 
+    @override
     def _menu_item_chosen_callback(self, item_chosen):  # Menu Menu Item Chosen Callback
         """
         Not user callable.  Called when some end-point on the menu (an item) has been clicked.  Send the information back to the application as an event.  Before event can be sent
@@ -9295,6 +9365,7 @@ class Menu(Element[tk.Menu]):
         self.parent_form_for_buttons.form_remained_open = True
         _exit_mainloop(self.parent_form_for_buttons)
 
+    @override
     @_ensure_widget_created
     def update(self, menu_definition=None, visible=None):
         """
@@ -9358,6 +9429,7 @@ class Menu(Element[tk.Menu]):
         if visible is not None:
             self._visible = visible
 
+    @override
     def _build_results(self):
         if self.menu_item_chosen is not None:
             self._toplevel_form.event = self._toplevel_form.last_button_clicked = self.menu_item_chosen
@@ -9372,6 +9444,7 @@ class Menu(Element[tk.Menu]):
         print('Using menu_obj.TKMenu is depricated! Use menu_obj.widget instead.')
         return self._widget
 
+    @override
     def _create_widget(self):
         self._widget = tk.Menu(
             self._toplevel_form.tk_root,
@@ -9382,6 +9455,7 @@ class Menu(Element[tk.Menu]):
             fg='#00ff00'
         )
     
+    @override
     def _get_default_configure_dict(self):
         conf_dict = {}
         # if self.font is not None:  # if a font is used, make sure it's saved in the element
@@ -9403,6 +9477,7 @@ class Menu(Element[tk.Menu]):
         conf_dict['activebackground'] = '#00ff00'
         return conf_dict
 
+    @override
     def _pre_pack(self):
         for menu_entry in self.menu_definition:
             baritem = tk.Menu(self._widget, tearoff=self.tearoff, tearoffcommand=self._tearoff_menu_callback)
@@ -9556,6 +9631,7 @@ class Table(Element[ttk.Treeview]):
 
         super().__init__(justification=justification, **kwargs)
 
+    @override
     @_ensure_widget_created
     def update(self, values=None, *, num_rows=None, visible=None, select_rows=None, alternating_row_color=None, row_colors=None):
         """
@@ -9758,6 +9834,7 @@ class Table(Element[ttk.Treeview]):
         print('Using table_obj.table_frame is deprecated! Use table_obj.element_frame instead.')
         return self.element_frame
 
+    @override
     def _create_widget(self):
         self.element_frame = tk.Frame(self.tk_parent_frame)
         height = self.num_rows
@@ -9860,6 +9937,7 @@ class Table(Element[ttk.Treeview]):
                 else:
                     self._widget.tag_configure(row_def[0], background=row_def[2], foreground=row_def[1])
     
+    @override
     def _get_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -9887,6 +9965,7 @@ class Table(Element[ttk.Treeview]):
         
         return config_dict, map_dict
 
+    @override
     def _get_additional_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -9916,6 +9995,7 @@ class Table(Element[ttk.Treeview]):
             
         return '.Heading', config_dict, map_dict
     
+    @override
     def _pre_pack(self):
         self._build_table_content()
 
@@ -9932,15 +10012,17 @@ class Table(Element[ttk.Treeview]):
             self.hsb.pack(side=tk.BOTTOM, fill='x')
             self._widget.configure(xscrollcommand=self.hsb.set)
 
+    @override
     def _modify_pack_dict(self, pack_dict):
         # padding is added in the element_frame
         pack_dict.pop('padx')
         pack_dict.pop('pady')
     
+    @override
     def _post_pack(self):
-        expand, fill = self._add_expansion()
-        self.element_frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
+        self.element_frame.pack(padx=self.pad[0], pady=self.pad[1], **self._add_expansion())
 
+    @override
     def _set_default_binds(self):
         if self.enable_click_events is True:
             self._widget.bind('<ButtonRelease-1>', self._table_clicked)
@@ -10091,6 +10173,7 @@ class Tree(Element[ttk.Treeview]):
             self.parent_form_for_buttons.form_remained_open = True
             _exit_mainloop(self.parent_form_for_buttons)
     
+    @override
     def _build_results(self):
         self._toplevel_form.add_return_value(self, self.selected_rows)
 
@@ -10129,6 +10212,7 @@ class Tree(Element[ttk.Treeview]):
         for _node in node.children:
             self.add_treeview_data(_node)
 
+    @override
     @_ensure_widget_created
     def update(self, values=None, *, key=None, value=None, text=None, icon=None, visible=None):
         """
@@ -10202,6 +10286,7 @@ class Tree(Element[ttk.Treeview]):
         if visible is not None:
             self._visible = visible
 
+    @override
     def _widget_for_visibility(self):
         return self.element_frame
 
@@ -10210,6 +10295,7 @@ class Tree(Element[ttk.Treeview]):
         print('Using table_obj.TKTreeview is deprecated! Use table_obj.widget instead.')
         return self._widget
 
+    @override
     def _create_widget(self):
         self.element_frame = tk.Frame(self.tk_parent_frame)
 
@@ -10299,6 +10385,7 @@ class Tree(Element[ttk.Treeview]):
         self._widget.column('#0', width=self.col0_width * self._char_width_in_pixels(self.font), anchor=tk.W)
         self._widget.heading('#0', text=self.col0_heading)
 
+    @override
     def _get_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -10327,6 +10414,7 @@ class Tree(Element[ttk.Treeview]):
 
         return config_dict, map_dict
 
+    @override
     def _get_additional_style_dicts(self):
         config_dict = {}
         map_dict = {}
@@ -10346,6 +10434,7 @@ class Tree(Element[ttk.Treeview]):
         
         return '.Heading', config_dict, map_dict
 
+    @override
     def _pre_pack(self):
         self._build_tree_content()
 
@@ -10362,15 +10451,17 @@ class Tree(Element[ttk.Treeview]):
             self.hsb.pack(side=tk.BOTTOM, fill='x')
             self.widget.configure(xscrollcommand=self.hsb.set)
 
+    @override
     def _modify_pack_dict(self, pack_dict):
         # padding is added in the element_frame
         pack_dict['padx'] = 0
         pack_dict['pady'] = 0
 
+    @override
     def _post_pack(self):
-        expand, fill = self._add_expansion()
-        self.element_frame.pack(side=tk.LEFT, padx=self.pad[0], pady=self.pad[1], expand=expand, fill=fill)
+        self.element_frame.pack(padx=self.pad[0], pady=self.pad[1], **self._add_expansion())
 
+    @override
     def _set_default_binds(self):
         self._widget.bind("<<TreeviewSelect>>", self._treeview_selected)
 
@@ -10458,6 +10549,7 @@ class TreeData:
         parent_node = self.tree_dict[parent]
         parent_node._add(node)
 
+    @override
     def __repr__(self):
         """
         Converts the TreeData into a printable version, nicely formatted
@@ -10500,6 +10592,7 @@ class ErrorElement(Element):
 
         super().__init__(key=key)
 
+    @override
     def update(self, silent_on_error=True, *args, **kwargs):
         """
         Update method for the Error Element, an element that should not be directly used by developer
@@ -11733,6 +11826,7 @@ class Window(Container):
         return None
 
 
+    @override
     def _build_key_dict(self):
         """
         Used internally only! Not user callable
@@ -12201,18 +12295,22 @@ class Window(Container):
         self.tk_root = None
 
 
+    @override
     @property
     def toplevel_form(self):
         return self
 
+    @override
     @property
     def font(self):
         return self._font or DEFAULTS.FONT
     
+    @override
     @property
     def text_color(self):
         return self._text_color
     
+    @override
     @property
     def background_color(self):
         return self._background_color
@@ -19564,6 +19662,7 @@ class UserSettings:
             # print(f'++++++ making a new SectionDict with name = {section_name}')
 
 
+        @override
         def __repr__(self):
             """
             Converts the settings dictionary into a string for easy display
@@ -19658,6 +19757,7 @@ class UserSettings:
 
     ########################################################################################################
 
+    @override
     def __repr__(self):
         """
         Converts the settings dictionary into a string for easy display

@@ -39,6 +39,7 @@ from quick_tkinter import (
     Checkbox,
     Column,
     Combo,
+    Container,
     FileBrowse,
     FolderBrowse,
     Frame,
@@ -374,6 +375,7 @@ def _create_main_window():
             Text('Popup tests? Good idea!', col_span=3)
         ],
         [
+            Text(),
             Button('Popup', key='P '),
             Button('Scrolled', key='P Scrolled'),
             Button('No Titlebar', key='P NoTitle'),
@@ -381,8 +383,12 @@ def _create_main_window():
             Button('Non Blocking', key='P NoBlock'),
             Button('Auto Close', key='P AutoClose')
         ],
-        [Text('Button Popups')],
         [
+            Text(),
+            Text('Button Popups', col_span=2)
+        ],
+        [
+            Text(),
             Button('OK', key='P ok'),
             Button('Cancel', key='P cancel'),
             Button('OK Cancel', key='P ok cancel'),
@@ -390,15 +396,19 @@ def _create_main_window():
             Button('Error', key='P error'),
             Button('Custom', key='P custom')
         ],
-        [Text('"Get" popups too!', col_span=5)],
         [
+            Text(),
+            Text('"Get" popups too!', col_span=5)
+        ],
+        [
+            Text(),
             Button('Get File'),
             Button('Get Folder'),
             Button('Get Date'),
             Button('Get Text')
         ]
     ]
-    pop_test_tab_layout = [[Frame(title='test', layout=pop_test_tab_layout)]]
+    pop_test_tab_layout = [[Frame(title='test', layout=pop_test_tab_layout, layout_type=Container.GRID)]]
 
     graph_size = (500, 200)
     graph_elem = Graph(canvas_size=graph_size, graph_bottom_left=(0, 0), graph_top_right=graph_size, key='+GRAPH+')
