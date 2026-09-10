@@ -387,8 +387,11 @@ def _create_main_window():
     tab8 = Tab('Themes\n', themes_tab_layout, key='-TAB THEMES-')
     tab9 = Tab('Images\n', [[Image(data=EMOJI_BASE64.HAPPY_IDEA, zoom=2)]], key='-TAB IMAGE-', image_source=EMOJI_BASE64.HAPPY_IDEA, image_subsample=2)
 
-    def VerLine(version, description, justification='r', size=(40, 1)):
-        return [Text(version, justification=justification, font='Any 12', text_color='yellow', size=size, pad=(0,0)), Text(description, font='Any 12', pad=(0,0))]
+    def _version_line(version, description, justification='r', size=(40, 1)):
+        return [
+            Text(version, justification=justification, font='Any 12', text_color='yellow', size=size, pad=(0,0)),
+            Text(description, font='Any 12', pad=(0,0))
+        ]
 
     layout_top = Column(
     [
@@ -398,15 +401,15 @@ def _create_main_window():
             Text('PySimpleGUI Test Harness', font='ANY 14', tooltip='My tooltip', key='-TEXT1-')
         ],
         [
-            *VerLine(ver, 'PySimpleGUI Version'),
+            *_version_line(ver, 'PySimpleGUI Version'),
             Image(data=HEART_3D_BASE64, subsample=4)
         ],
         # VerLine('{}/{}'.format(tkversion, tclversion), 'TK/TCL Versions'),
-        VerLine(tclversion_detailed, 'detailed tkinter version'),
-        VerLine(os.path.dirname(os.path.abspath(__file__)), 'PySimpleGUI Location', size=(40, None)),
-        VerLine(sys.executable, 'Python Executable'),
+        _version_line(tclversion_detailed, 'detailed tkinter version'),
+        _version_line(os.path.dirname(os.path.abspath(__file__)), 'PySimpleGUI Location', size=(40, None)),
+        _version_line(sys.executable, 'Python Executable'),
         [
-            *VerLine(sys.version, 'Python Version', size=(40,2)),
+            *_version_line(sys.version, 'Python Version', size=(40,2)),
             Image(data=PYTHON_COLORED_HEARTS_BASE64, subsample=3, key='-PYTHON HEARTS-', enable_events=True)
         ]
     ], pad=0)
@@ -614,19 +617,33 @@ def main_global_pysimplegui_settings():
     )
 
     # ------------------------- TTK Tab -------------------------
-    ttk_scrollbar_tab_layout = [[Text('Default TTK Theme', font='_ 16'), Combo([], default_value=DEFAULTS.TTK_THEME, readonly=True, size=(20, 10), key='-TTK THEME-', font='_ 16')],
-                                [HorizontalSeparator()],
-                                [Text('TTK Scrollbar Settings', font='_ 16')]]
+    ttk_scrollbar_tab_layout = [
+        [
+            Text('Default TTK Theme', font='_ 16'),
+            Combo([], default_value=DEFAULTS.TTK_THEME, readonly=True, size=(20, 10), key='-TTK THEME-', font='_ 16')
+        ],
+        [HorizontalSeparator()],
+        [Text('TTK Scrollbar Settings', font='_ 16')]
+    ]
 
     t_len = max([len(line) for line in TTK_SCROLLBAR_PARTS.LIST])
     ttk_layout = [[]]
     for key, item in ttk_part_mapping_dict.items():
         if key in TTK_SCROLLBAR_PARTS.THEME_BASED_LIST:
-            ttk_layout += [[Text(key, size=t_len, justification='r'), Combo(PSG_THEME_PART_LIST, default_value=settings.get(('-ttk scroll-', key), item), key=('-TTK SCROLL-', key))]]
+            ttk_layout += [[
+                Text(key, size=t_len, justification='r'),
+                Combo(PSG_THEME_PART_LIST, default_value=settings.get(('-ttk scroll-', key), item), key=('-TTK SCROLL-', key))
+            ]]
         elif key in (TTK_SCROLLBAR_PARTS.ARROW_WIDTH, TTK_SCROLLBAR_PARTS.SCROLL_WIDTH):
-            ttk_layout += [[Text(key, size=t_len, justification='r'), Combo(list(range(100)), default_value=settings.get(('-ttk scroll-', key), item), key=('-TTK SCROLL-', key))]]
+            ttk_layout += [[
+                Text(key, size=t_len, justification='r'),
+                Combo(list(range(100)), default_value=settings.get(('-ttk scroll-', key), item), key=('-TTK SCROLL-', key))
+            ]]
         elif key == TTK_SCROLLBAR_PARTS.RELIEF:
-            ttk_layout += [[Text(key, size=t_len, justification='r'), Combo(list(RELIEFS.values()), default_value=settings.get(('-ttk scroll-', key), item), readonly=True, key=('-TTK SCROLL-', key))]]
+            ttk_layout += [[
+                Text(key, size=t_len, justification='r'),
+                Combo(list(RELIEFS.values()), default_value=settings.get(('-ttk scroll-', key), item), readonly=True, key=('-TTK SCROLL-', key))
+            ]]
 
     ttk_scrollbar_tab_layout += ttk_layout
     ttk_scrollbar_tab_layout += [[Button('Reset Scrollbar Settings'), Button('Test Scrollbar Settings')]]
@@ -637,51 +654,119 @@ def main_global_pysimplegui_settings():
     # ------------------------- Interpreter Tab -------------------------
 
 
-    interpreter_tab = Tab('Python Interpreter',
-              [[Text('Normally leave this blank')],
-                [Text('Command to run a python program:'), Input(settings.get('-python command-', ''), key='-PYTHON COMMAND-', enable_events=True), FileBrowse()]], font='_ 16', expand_x=True)
+    interpreter_tab = Tab(
+        'Python Interpreter',
+        layout=[
+            [Text('Normally leave this blank')],
+            [
+                Text('Command to run a python program:'),
+                Input(settings.get('-python command-', ''), key='-PYTHON COMMAND-', enable_events=True), FileBrowse()
+            ]
+        ],
+        title_font='_ 16',
+        expand_x=True
+    )
 
     # ------------------------- Editor Tab -------------------------
 
-    editor_tab = Tab('Editor Settings',
-              [[Text('Command to invoke your editor:'), Input(settings.get('-editor program-', ''), key='-EDITOR PROGRAM-', enable_events=True), FileBrowse()],
-              [Text('String to launch your editor to edit at a particular line #.')],
-              [Text('Use tags <editor> <file> <line> to specify the string')],
-              [Text('that will be executed to edit python files using your editor')],
-              [Text('Edit Format String (hover for tooltip)', tooltip=tooltip),
-               Input(settings.get('-editor format string-', '<editor> <file>'), key='-EDITOR FORMAT-', tooltip=tooltip)]], font='_ 16', expand_x=True)
+    editor_tab = Tab(
+        'Editor Settings',
+        layout=[
+            [
+                Text('Command to invoke your editor:'),
+                Input(settings.get('-editor program-', ''), key='-EDITOR PROGRAM-', enable_events=True),
+                FileBrowse()
+            ],
+            [Text('String to launch your editor to edit at a particular line #.')],
+            [Text('Use tags <editor> <file> <line> to specify the string')],
+            [Text('that will be executed to edit python files using your editor')],
+            [
+                Text('Edit Format String (hover for tooltip)', tooltip=tooltip),
+                Input(settings.get('-editor format string-', '<editor> <file>'), key='-EDITOR FORMAT-', tooltip=tooltip)
+            ]
+        ],
+        title_font='_ 16',
+        expand_x=True
+    )
 
     # ------------------------- Explorer Tab -------------------------
 
-    explorer_tab = Tab('Explorer Program',
-              [[Input(settings.get('-explorer program-', ''), key='-EXPLORER PROGRAM-', tooltip=tooltip_file_explorer)]], font='_ 16', expand_x=True,  tooltip=tooltip_file_explorer)
+    explorer_tab = Tab(
+        'Explorer Program',
+        layout=[[Input(settings.get('-explorer program-', ''), key='-EXPLORER PROGRAM-', tooltip=tooltip_file_explorer)]],
+        title_font='_ 16',
+        expand_x=True,
+        tooltip=tooltip_file_explorer
+    )
 
     # ------------------------- Snapshots Tab -------------------------
 
-    snapshots_tab = Tab('Window Snapshots',
-              [[Combo(('', *key_choices), default_value=settings.get(json.dumps(('-snapshot keysym-', i)), ''), readonly=True, key=('-SNAPSHOT KEYSYM-', i), size=(None, 30)) for i in range(4)],
-              [Text('Manually Entered Bind String:'), Input(settings.get('-snapshot keysym manual-', ''),key='-SNAPSHOT KEYSYM MANUAL-')],
-              [Text('Folder to store screenshots:'), Push(), Input(settings.get('-screenshots folder-', ''), key='-SCREENSHOTS FOLDER-'), FolderBrowse()],
-              [Text('Screenshots Filename or Prefix:'), Push(), Input(settings.get('-screenshots filename-', ''), key='-SCREENSHOTS FILENAME-'), FileBrowse()],
-              [Checkbox('Auto-number Images', key='-SCREENSHOTS AUTONUMBER-')]], font='_ 16', expand_x=True)
+    snapshots_tab = Tab(
+        'Window Snapshots',
+        layout=[
+            [
+                Combo(
+                    ('', *key_choices),
+                    default_value=settings.get(json.dumps(('-snapshot keysym-', i)), ''),
+                    readonly=True,
+                    key=('-SNAPSHOT KEYSYM-', i),
+                    size=(None, 30)
+                )
+                for i in range(4)
+            ],
+            [
+                Text('Manually Entered Bind String:'),
+                Input(settings.get('-snapshot keysym manual-', ''),key='-SNAPSHOT KEYSYM MANUAL-')
+            ],
+            [
+                Text('Folder to store screenshots:'),
+                Push(),
+                Input(settings.get('-screenshots folder-', ''), key='-SCREENSHOTS FOLDER-'),
+                FolderBrowse()
+            ],
+            [
+                Text('Screenshots Filename or Prefix:'),
+                Push(),
+                Input(settings.get('-screenshots filename-', ''), key='-SCREENSHOTS FILENAME-'),
+                FileBrowse()
+            ],
+            [Checkbox('Auto-number Images', key='-SCREENSHOTS AUTONUMBER-')]
+        ],
+        title_font='_ 16',
+        expand_x=True
+    )
 
     # ------------------------- Theme Tab -------------------------
 
-    theme_tab = Tab('Theme',
-              [[Text(f"Leave blank for 'official' PySimpleGUI default theme: {OFFICIAL_PYSIMPLEGUI_THEME}")],
-              [Text('Default Theme For All Programs:'),
-               Combo(['', *theme_list()], default_value=settings.get('-theme-', None), readonly=True, key='-THEME-', tooltip=tooltip_theme), Checkbox('Always use custom Titlebar', default_value=pysimplegui_user_settings.get('-custom titlebar-',False), key='-CUSTOM TITLEBAR-')],
-               [Frame('Window Watermarking',
-                       [[Checkbox('Enable Window Watermarking', default_value=pysimplegui_user_settings.get('-watermark-', False), key='-WATERMARK-')],
-                       [Text('Prefix Text String:'), Input(pysimplegui_user_settings.get('-watermark text-', ''), key='-WATERMARK TEXT-')],
-                       [Checkbox('PySimpleGUI Version', default_value=pysimplegui_user_settings.get('-watermark ver-', False), key='-WATERMARK VER-')],
-                       [Checkbox('Framework Version', default_value=pysimplegui_user_settings.get('-watermark framework ver-', False), key='-WATERMARK FRAMEWORK VER-')],
-                       [Text('Font:'), Input(pysimplegui_user_settings.get('-watermark font-', '_ 9 bold'), key='-WATERMARK FONT-')],
-                       # [T('Background Color:'), Input(pysimplegui_user_settings.get('-watermark bg color-', 'window.BackgroundColor'), key='-WATERMARK BG COLOR-')],
+    theme_tab = Tab(
+        'Theme',
+        layout=[
+            [Text(f"Leave blank for 'official' PySimpleGUI default theme: {OFFICIAL_PYSIMPLEGUI_THEME}")],
+            [
+                Text('Default Theme For All Programs:'),
+                Combo(['', *theme_list()], default_value=settings.get('-theme-', None), readonly=True, key='-THEME-', tooltip=tooltip_theme),
+                Checkbox('Always use custom Titlebar', default_value=pysimplegui_user_settings.get('-custom titlebar-',False), key='-CUSTOM TITLEBAR-')
+            ],
+            [
+                Frame(
+                    'Window Watermarking',
+                    layout=[
+                        [Checkbox('Enable Window Watermarking', default_value=pysimplegui_user_settings.get('-watermark-', False), key='-WATERMARK-')],
+                        [
+                            Text('Prefix Text String:'),
+                            Input(pysimplegui_user_settings.get('-watermark text-', ''), key='-WATERMARK TEXT-')
                         ],
-                font='_ 16', expand_x=True)]])
-
-
+                        [Checkbox('PySimpleGUI Version', default_value=pysimplegui_user_settings.get('-watermark ver-', False), key='-WATERMARK VER-')],
+                        [Checkbox('Framework Version', default_value=pysimplegui_user_settings.get('-watermark framework ver-', False), key='-WATERMARK FRAMEWORK VER-')],
+                        [Text('Font:'), Input(pysimplegui_user_settings.get('-watermark font-', '_ 9 bold'), key='-WATERMARK FONT-')],
+                        # [T('Background Color:'), Input(pysimplegui_user_settings.get('-watermark bg color-', 'window.BackgroundColor'), key='-WATERMARK BG COLOR-')],
+                    ],
+                    title_font='_ 16',
+                    expand_x=True
+                )  # end inner Frame
+            ]
+        ]
+    )
 
     settings_tab_group = TabGroup(layout=[[theme_tab, ttk_tab, interpreter_tab, explorer_tab, editor_tab, snapshots_tab]])
     layout += [[settings_tab_group]]

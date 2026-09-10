@@ -50,7 +50,7 @@ import warnings
 from abc import ABC, abstractmethod
 from functools import wraps
 from hashlib import sha256 as hh
-from math import fabs, floor
+from math import floor
 from tkinter import filedialog, ttk
 
 from PIL import ImageGrab
@@ -1380,8 +1380,8 @@ class Element[widget_type: tk.Widget](ABC):
         :type event:
         """
         # If this is a minimize button for a custom titlebar, then minimize the window
-        if self.key in (TITLEBAR_MINIMIZE_KEY, TITLEBAR_MAXIMIZE_KEY, TITLEBAR_CLOSE_KEY):
-            self.parent_form_for_buttons._custom_titlebar_callback(self.key)
+        if self._key in (TITLEBAR_MINIMIZE_KEY, TITLEBAR_MAXIMIZE_KEY, TITLEBAR_CLOSE_KEY):
+            self.parent_form_for_buttons._custom_titlebar_callback(self._key)
         self._generic_callback_handler(self.display_text)
 
     def _return_key_handler(self, event):
@@ -1419,8 +1419,8 @@ class Element[widget_type: tk.Widget](ABC):
         """
         if force_key_to_be is not None:
             button_key = force_key_to_be
-        elif self.key is not None:
-            button_key = self.key
+        elif self._key is not None:
+            button_key = self._key
         else:
             button_key = alternative_to_key
         
@@ -1522,11 +1522,11 @@ class Element[widget_type: tk.Widget](ABC):
         """
         key_suffix = self.user_bind_dict.get(bind_string, '')
         self.user_bind_event = event
-        if self.key is not None:
-            if isinstance(self.key, str):
-                key = self.key + str(key_suffix)
+        if self._key is not None:
+            if isinstance(self._key, str):
+                key = self._key + str(key_suffix)
             else:
-                key = (self.key, key_suffix)  # old way (pre 2021) was to make a brand new tuple
+                key = (self._key, key_suffix)  # old way (pre 2021) was to make a brand new tuple
                 # key = self.Key + (key_suffix,)   # in 2021 tried this. It will break existing applications though - if key is a tuple, add one more item
         else:
             key = bind_string
@@ -1658,7 +1658,7 @@ class Element[widget_type: tk.Widget](ABC):
             if size[0] is not None:
                 self.widget.config(width=size[0])
         except Exception:
-            print('Warning, error setting width on element with key=', self.key)
+            print('Warning, error setting width on element with key=', self._key)
         try:
             if size[1] is not None:
                 self.widget.config(height=size[1])
@@ -1666,7 +1666,7 @@ class Element[widget_type: tk.Widget](ABC):
             try:
                 self.widget.config(length=size[1])
             except Exception:
-                print('Warning, error setting height on element with key=', self.key)
+                print('Warning, error setting height on element with key=', self._key)
 
     def get_size(self):
         """
@@ -1678,7 +1678,7 @@ class Element[widget_type: tk.Widget](ABC):
             w = self.widget.winfo_width()
             h = self.widget.winfo_height()
         except Exception:
-            print('Warning, error getting size of element', self.key)
+            print('Warning, error getting size of element', self._key)
             w = h = None
         return w, h
 
@@ -1690,7 +1690,7 @@ class Element[widget_type: tk.Widget](ABC):
         try:
             self.tk_parent_frame.pack_forget()
         except Exception:
-            print('Warning, error hiding element row for key =', self.key)
+            print('Warning, error hiding element row for key =', self._key)
 
     def unhide_row(self):
         """
@@ -1701,7 +1701,7 @@ class Element[widget_type: tk.Widget](ABC):
         try:
             self.tk_parent_frame.pack()
         except Exception:
-            print('Warning, error hiding element row for key =', self.key)
+            print('Warning, error hiding element row for key =', self._key)
 
     @_ensure_widget_created
     def expand(self, *, expand_x=False, expand_y=False, expand_row=True):
@@ -1802,10 +1802,10 @@ class Element[widget_type: tk.Widget](ABC):
         if SUPPRESS_WIDGET_NOT_FINALIZED_WARNINGS:
             return False
 
-        warnings.warn(f"You cannot update element with key = {self.key} until the window.read() is called or set finalize=True when creating window", UserWarning, stacklevel=2)
+        warnings.warn(f"You cannot update element with key = {self._key} until the window.read() is called or set finalize=True when creating window", UserWarning, stacklevel=2)
         if not SUPPRESS_ERROR_POPUPS:
             _error_popup_with_traceback(
-                f"Unable to complete operation on element with key {self.key}",
+                f"Unable to complete operation on element with key {self._key}",
                 "You cannot perform operations (such as calling update) on an Element until:",
                 " window.read() is called or finalize=True when Window created.",
                 "Adding a 'finalize=True' parameter to your Window creation will likely fix this.",
@@ -1818,18 +1818,18 @@ class Element[widget_type: tk.Widget](ABC):
         Turns on Grab Anywhere functionality AFTER a window has been created.  Don't try on a window that's not yet
         been Finalized or Read.
         """
-        self.widget.bind("<Control-Button-1>", self.parent_form_for_buttons._StartMove)
-        self.widget.bind("<Control-ButtonRelease-1>", self.parent_form_for_buttons._StopMove)
-        self.widget.bind("<Control-B1-Motion>", self.parent_form_for_buttons._OnMotion)
+        self.widget.bind("<Control-Button-1>", self.parent_form_for_buttons._start_move)
+        self.widget.bind("<Control-ButtonRelease-1>", self.parent_form_for_buttons._stop_move)
+        self.widget.bind("<Control-B1-Motion>", self.parent_form_for_buttons._on_motion)
 
     def _grab_anywhere_on(self):
         """
         Turns on Grab Anywhere functionality AFTER a window has been created.  Don't try on a window that's not yet
         been Finalized or Read.
         """
-        self.widget.bind("<ButtonPress-1>", self.parent_form_for_buttons._StartMove)
-        self.widget.bind("<ButtonRelease-1>", self.parent_form_for_buttons._StopMove)
-        self.widget.bind("<B1-Motion>", self.parent_form_for_buttons._OnMotion)
+        self.widget.bind("<ButtonPress-1>", self.parent_form_for_buttons._start_move)
+        self.widget.bind("<ButtonRelease-1>", self.parent_form_for_buttons._stop_move)
+        self.widget.bind("<B1-Motion>", self.parent_form_for_buttons._on_motion)
 
     def _grab_anywhere_off(self):
         """
@@ -2051,21 +2051,21 @@ class Element[widget_type: tk.Widget](ABC):
         :return:           (dict) Dictionary filled with all keys in the window
         :rtype:
         """
-        if self.key is None:  # if no key has been assigned.... create one for input elements
+        if self._key is None:  # if no key has been assigned.... create one for input elements
             self._key = self._toplevel_form._dictionary_key_counter
             self._toplevel_form._dictionary_key_counter += 1
-        if self.key in key_dict:
+        if self._key in key_dict:
             if isinstance(self, Button) and WARN_DUPLICATE_BUTTON_KEY_ERRORS:  # for Buttons see if should complain
-                warnings.warn(f"*** Duplicate key found in your layout {self.key} ***", UserWarning, stacklevel=2)
-                warnings.warn(f"*** Replaced new key with {str(self.key) + str(self._toplevel_form.unique_key_counter)} ***", stacklevel=2)
+                warnings.warn(f"*** Duplicate key found in your layout {self._key} ***", UserWarning, stacklevel=2)
+                warnings.warn(f"*** Replaced new key with {str(self._key) + str(self._toplevel_form.unique_key_counter)} ***", stacklevel=2)
                 if not SUPPRESS_ERROR_POPUPS:
-                    _error_popup_with_traceback("Duplicate key found in your layout", f"Dupliate key: {self.key}",
-                                                f"Is being replaced with: {str(self.key) + str(self._toplevel_form.unique_key_counter)}",
+                    _error_popup_with_traceback("Duplicate key found in your layout", f"Dupliate key: {self._key}",
+                                                f"Is being replaced with: {str(self._key) + str(self._toplevel_form.unique_key_counter)}",
                                                 "The line of code above shows you which layout, but does not tell you exactly where the element was defined",
                                                 f"The element type is {type(self).__name__}")
-            self._key = str(self.key) + str(self._toplevel_form.unique_key_counter)
+            self._key = str(self._key) + str(self._toplevel_form.unique_key_counter)
             self._toplevel_form.unique_key_counter += 1
-        key_dict[self.key] = self
+        key_dict[self._key] = self
 
     @property
     def pad(self):
@@ -2086,13 +2086,7 @@ class Element[widget_type: tk.Widget](ABC):
 
     @property
     def font(self):
-        if self._toplevel_form._font and (self._font == DEFAULTS.FONT or self._font is None):
-            return self._toplevel_form._font
-        
-        if self._font is not None:
-            return self._font
-        
-        return DEFAULTS.FONT
+        return self._font or self.parent_form.font
 
     @property
     def size(self):
@@ -2110,11 +2104,11 @@ class Element[widget_type: tk.Widget](ABC):
 
     @property
     def background_color(self):
-        return self._background_color if self._background_color is not None else DEFAULTS.BACKGROUND_COLOR
+        return self._background_color or self.parent_form.background_color
 
     @property
     def text_color(self):
-        return self._text_color if self._text_color is not None else DEFAULTS.TEXT_COLOR
+        return self._text_color or self.parent_form.text_color
 
     @property
     def justification(self):
@@ -2417,16 +2411,16 @@ class Element[widget_type: tk.Widget](ABC):
             if self.parent_form.grab is True or self.grab is True:
                 # if something already about to the button, then don't do the grab stuff
                 if '<Button-1>' not in self.widget.bind():
-                    self._widget.bind("<ButtonPress-1>", self._toplevel_form._StartMoveGrabAnywhere)
-                    self._widget.bind("<ButtonRelease-1>", self._toplevel_form._StopMove)
-                    self._widget.bind("<B1-Motion>", self._toplevel_form._OnMotionGrabAnywhere)
-                self.parent_row_frame.bind("<ButtonPress-1>", self._toplevel_form._StartMoveGrabAnywhere)
-                self.parent_row_frame.bind("<ButtonRelease-1>", self._toplevel_form._StopMove)
-                self.parent_row_frame.bind("<B1-Motion>", self._toplevel_form._OnMotionGrabAnywhere)
+                    self._widget.bind("<ButtonPress-1>", self._toplevel_form._start_move_grab_anywhere)
+                    self._widget.bind("<ButtonRelease-1>", self._toplevel_form._stop_move)
+                    self._widget.bind("<B1-Motion>", self._toplevel_form._on_motion_grab_anywhere)
+                self.parent_row_frame.bind("<ButtonPress-1>", self._toplevel_form._start_move_grab_anywhere)
+                self.parent_row_frame.bind("<ButtonRelease-1>", self._toplevel_form._stop_move)
+                self.parent_row_frame.bind("<B1-Motion>", self._toplevel_form._on_motion_grab_anywhere)
                 if isinstance(self, Column):
-                    self._widget.canvas.bind("<ButtonPress-1>", self.toplevel_form._StartMoveGrabAnywhere)
-                    self._widget.canvas.bind("<ButtonRelease-1>", self.toplevel_form._StopMove)
-                    self._widget.canvas.bind("<B1-Motion>", self.toplevel_form._OnMotionGrabAnywhere)
+                    self._widget.canvas.bind("<ButtonPress-1>", self.toplevel_form._start_move_grab_anywhere)
+                    self._widget.canvas.bind("<ButtonRelease-1>", self.toplevel_form._stop_move)
+                    self._widget.canvas.bind("<B1-Motion>", self.toplevel_form._on_motion_grab_anywhere)
         except Exception:
             pass
             # print(e)
@@ -2467,7 +2461,7 @@ class Container:
     Class for Elements that can contain other elements.
     
     !! Warning !!
-    For inheritance reasons, this has to be placed before the Element class, i.e.
+    For inheritance reasons, this has to be placed BEFORE the Element class, i.e.
     ```
     class NewElementClass(Container, Element):
         ...
@@ -2551,7 +2545,7 @@ class Container:
                 element.parent_form_for_buttons = toplevel_form  # save the button's parent form object
                 element._toplevel_form = toplevel_form
                 element.pack()
-                element._widget.key = element.key
+                element._widget.key = element._key
 
             
             anchor = 'nw'
@@ -2620,7 +2614,7 @@ class Container:
                     'Error creating Frame layout.',
                     'It contains an element that was already added to a window.',
                     f'The element is {element}',
-                    f'and has key {element.key}.',
+                    f'and has key {element._key}.',
                     'This element will NOT be added to the window.'
                 )
             if err_msg:
@@ -2634,7 +2628,7 @@ class Container:
             element._row = row_number
             element._col = col
             col += 1
-            if element.key is not None:
+            if element._key is not None:
                 self._use_dictionary = True
             # if this element is a titlebar, then automatically set the window margins to (0,0) and turn off normal titlebar
             if isinstance(element, Window) and element.metadata == TITLEBAR_METADATA_MARKER:
@@ -2669,6 +2663,7 @@ class Container:
                 continue
             yield row
 
+    @abstractmethod
     def _build_key_dict(self, key_dict: dict):
         """
         Loop through all Rows and all Container Elements for this window and create the keys for all of them.
@@ -2681,7 +2676,7 @@ class Container:
         :return:           (dict) Dictionary filled with all keys in the window
         :rtype:
         """
-        super()._build_key_dict(key_dict)  # add own key to the dict (super() calls the next superclass, which is why Element has to be AFTER Container)
+        super()._build_key_dict(key_dict)  # add own key to the dict
         for element in self:
             element._build_key_dict(key_dict)
     
@@ -2689,7 +2684,7 @@ class Container:
         self._dictionary_key_counter = self.toplevel_form._dictionary_key_counter
 
         for element in self:
-            if element.key is not None and WRITE_ONLY_KEY in str(element.key):
+            if element._key is not None and WRITE_ONLY_KEY in str(element._key):
                 continue
                 
             element._build_results()
@@ -2923,7 +2918,7 @@ class Input(_InputElementReadonlyable[tk.Entry]):
                 self._widget.config(insertbackground=ibeam_color)
             except Exception:
                 _error_popup_with_traceback('Error setting I-Beam color in set_ibeam_color',
-                           'The element has a key:', self.key,
+                           'The element has a key:', self._key,
                             'The color passed in was:', ibeam_color)
 
     @property
@@ -3240,7 +3235,7 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
                     config_dict['selectbackground'] = self.background_color
         except Exception as e:
             _error_popup_with_traceback(f"Combo Element error {e}",
-                                        f"Combo element key: {self.key}",
+                                        f"Combo element key: {self._key}",
                                         "One of your colors is bad. Check the text, background, button background and button arrow colors",
                                         f"Parent Window's Title: {self._toplevel_form.title}")
 
@@ -3328,7 +3323,7 @@ class Combo(_InputElementReadonlyable[ttk.Combobox]):
                     combostyle.configure(style_name, selectbackground=self.background_color)
         except Exception as e:
             _error_popup_with_traceback(f"Combo Element error {e}",
-                                        f"Combo element key: {self.key}",
+                                        f"Combo element key: {self._key}",
                                         "One of your colors is bad. Check the text, background, button background and button arrow colors",
                                         f"Parent Window's Title: {self._toplevel_form.title}")
 
@@ -4318,8 +4313,8 @@ class Spin(_InputElement[tk.Spinbox]):
         :type event:
         """
         # first, get the results table built
-        if self.key is not None:
-            self.parent_form_for_buttons.last_button_clicked = self.key
+        if self._key is not None:
+            self.parent_form_for_buttons.last_button_clicked = self._key
         else:
             self.parent_form_for_buttons.last_button_clicked = ''
         self.parent_form_for_buttons.form_remained_open = True
@@ -4342,7 +4337,7 @@ class Spin(_InputElement[tk.Spinbox]):
                 _error_popup_with_traceback(
                     'Error setting I-Beam color in set_ibeam_color',
                     'The element has a key:',
-                    self.key,
+                    self._key,
                     'The color passed in was:',
                     ibeam_color
                 )
@@ -4750,7 +4745,7 @@ class Multiline(_InputElement[tk.Text]):
                 self._widget.config(insertbackground=ibeam_color)
             except Exception:
                 _error_popup_with_traceback('Error setting I-Beam color in set_ibeam_color',
-                           'The element has a key:', self.key,
+                           'The element has a key:', self._key,
                             'The color passed in was:', ibeam_color)
 
     def __del__(self):
@@ -4857,7 +4852,7 @@ class Multiline(_InputElement[tk.Text]):
             self._widget.focus_set()
 
         if self.reroute_cprint:
-            cprint_set_output_destination(self._toplevel_form, self.key)
+            cprint_set_output_destination(self._toplevel_form, self._key)
 
         if self.reroute_stdout:
             self.reroute_stdout_to_here()
@@ -5606,8 +5601,8 @@ class Button(Element[tk.Button | ttk.Button]):
 
         """
         self.parent_form_for_buttons.last_button_clicked_was_realtime = True
-        if self.key is not None:
-            self.parent_form_for_buttons.last_button_clicked = self.key
+        if self._key is not None:
+            self.parent_form_for_buttons.last_button_clicked = self._key
         else:
             self.parent_form_for_buttons.last_button_clicked = self.button_text
         _exit_mainloop(self.parent_form_for_buttons)
@@ -5744,34 +5739,34 @@ class Button(Element[tk.Button | ttk.Button]):
         elif self.b_type == Button.TYPE.CLOSES_WIN:  # this is a return type button so GET RESULTS and destroy window
             # first, get the results table built
             # modify the Results table in the parent FlexForm object
-            if self.key is not None:
-                self.parent_form_for_buttons.last_button_clicked = self.key
+            if self._key is not None:
+                self.parent_form_for_buttons.last_button_clicked = self._key
             else:
                 self.parent_form_for_buttons.last_button_clicked = self.button_text
             self.parent_form_for_buttons.form_remained_open = False
-            self.parent_form_for_buttons._Close()
+            self.parent_form_for_buttons._close()
             _exit_mainloop(self.parent_form_for_buttons)
 
             if self.parent_form_for_buttons.non_blocking:
                 self.parent_form_for_buttons.tk_root.destroy()
-                Window._DecrementOpenCount()
+                Window._decrement_open_count()
         elif self.b_type == Button.TYPE.READ_FORM:  # LEAVE THE WINDOW OPEN!! DO NOT CLOSE
             # This is a PLAIN BUTTON
             # first, get the results table built
             # modify the Results table in the parent FlexForm object
-            if self.key is not None:
-                self.parent_form_for_buttons.last_button_clicked = self.key
+            if self._key is not None:
+                self.parent_form_for_buttons.last_button_clicked = self._key
             else:
                 self.parent_form_for_buttons.last_button_clicked = self.button_text
             self.parent_form_for_buttons.form_remained_open = True
             _exit_mainloop(self.parent_form_for_buttons)
         elif self.b_type == Button.TYPE.CLOSES_WIN_ONLY:  # special kind of button that does not exit main loop
-            self.parent_form_for_buttons._Close(without_event=True)
+            self.parent_form_for_buttons._close(without_event=True)
             self.parent_form_for_buttons.tk_root.destroy()  # close the window with tkinter
-            Window._DecrementOpenCount()
+            Window._decrement_open_count()
         elif self.b_type == Button.TYPE.CALENDAR_CHOOSER:  # this is a return type button so GET RESULTS and destroy window
             # ------------ new chooser code -------------
-            self.parent_form_for_buttons.last_button_clicked = self.key  # key should have been generated already if not set by user
+            self.parent_form_for_buttons.last_button_clicked = self._key  # key should have been generated already if not set by user
             self.parent_form_for_buttons.form_remained_open = True
             should_submit_window = False
             _exit_mainloop(self.parent_form_for_buttons)
@@ -5781,7 +5776,7 @@ class Button(Element[tk.Button | ttk.Button]):
                 # show_debugger_popout_window()
 
         if should_submit_window:
-            self.parent_form_for_buttons.last_button_clicked = target_element.key
+            self.parent_form_for_buttons.last_button_clicked = target_element._key
             self.parent_form_for_buttons.form_remained_open = True
             _exit_mainloop(self.parent_form_for_buttons)
 
@@ -5942,8 +5937,8 @@ class Button(Element[tk.Button | ttk.Button]):
             print('Exception clicking button')
     
     def _build_results(self):
-        if self._toplevel_form.last_button_clicked == self.key:
-            self._toplevel_form.event = self.key
+        if self._toplevel_form.last_button_clicked == self._key:
+            self._toplevel_form.event = self._key
             if self.b_type != Button.TYPE.REALTIME:  # Do not clear realtime buttons
                 self._toplevel_form.last_button_clicked = None
 
@@ -5956,7 +5951,7 @@ class Button(Element[tk.Button | ttk.Button]):
                 value = None
 
         if (self.b_type == Button.TYPE.COLOR_CHOOSER and self.target == (None, None)) or \
-            (self.key is not None and self.b_type in
+            (self._key is not None and self.b_type in
                 {Button.TYPE.SAVEAS_FILE, Button.TYPE.BROWSE_FILE, Button.TYPE.BROWSE_FILES,
                 Button.TYPE.BROWSE_FOLDER, Button.TYPE.CALENDAR_CHOOSER}):
             self._toplevel_form.add_return_value(self, value)
@@ -6025,7 +6020,7 @@ class Button(Element[tk.Button | ttk.Button]):
                 f"Button Element error {e}",
                 "Problem using BASE64 Image data Image Susample" if self.image_data \
                     else f"Image filename: {self.image_filename}, NOTE - file format must be PNG or GIF!",
-                f"Button element key: {self.key}",
+                f"Button element key: {self._key}",
                 f"Parent Window's Title: {self._toplevel_form.title}")
         conf_dict['image'] = photo
         conf_dict['compound'] = tk.CENTER
@@ -6260,7 +6255,7 @@ class ButtonMenu(Element[tk.Menubutton]):
         """
         # print('IN MENU ITEM CALLBACK', item_chosen)
         self.menu_item_chosen = item_chosen
-        self.parent_form_for_buttons.last_button_clicked = self.key
+        self.parent_form_for_buttons.last_button_clicked = self._key
         self.parent_form_for_buttons.form_remained_open = True
         _exit_mainloop(self.parent_form_for_buttons)
 
@@ -6555,7 +6550,7 @@ class ProgressBar(Element):
         try:
             self.parent_form_for_buttons.tk_root.update()
         except Exception:
-            Window._DecrementOpenCount()
+            Window._decrement_open_count()
             # _my_windows.Decrement()
             return False
         return True
@@ -6921,7 +6916,7 @@ class Image(Element[tk.Label]):
             photo = None
             _error_popup_with_traceback("Your Window has an Image Element with a problem",
                                         "The traceback will show you the Window with the problem layout",
-                                        f"Look in this Window's layout for an Image element that has a key of {self.key}",
+                                        f"Look in this Window's layout for an Image element that has a key of {self._key}",
                                         "The error occuring is:", e)
 
         if photo is not None:
@@ -7597,8 +7592,8 @@ class Graph(Element[tk.Canvas]):
             return  # only report mouse up for drag operations
         self.click_position = self._convert_canvas_xy_to_xy(event.x, event.y)
         self.parent_form_for_buttons.last_button_clicked_was_realtime = False
-        if self.key is not None:
-            self.parent_form_for_buttons.last_button_clicked = self.key
+        if self._key is not None:
+            self.parent_form_for_buttons.last_button_clicked = self._key
         else:
             self.parent_form_for_buttons.last_button_clicked = '__GRAPH__'  # need to put something rather than None
         _exit_mainloop(self.parent_form_for_buttons)
@@ -7620,8 +7615,8 @@ class Graph(Element[tk.Canvas]):
 
         self.click_position = self._convert_canvas_xy_to_xy(event.x, event.y)
         self.parent_form_for_buttons.last_button_clicked_was_realtime = self.drag_submits
-        if self.key is not None:
-            self.parent_form_for_buttons.last_button_clicked = self.key
+        if self._key is not None:
+            self.parent_form_for_buttons.last_button_clicked = self._key
         else:
             self.parent_form_for_buttons.last_button_clicked = '__GRAPH__'  # need to put something rather than None
         _exit_mainloop(self.parent_form_for_buttons)
@@ -7695,8 +7690,8 @@ class Graph(Element[tk.Canvas]):
             return
         self.click_position = self._convert_canvas_xy_to_xy(event.x, event.y)
         self.parent_form_for_buttons.last_button_clicked_was_realtime = self.drag_submits
-        if self.key is not None:
-            self.parent_form_for_buttons.last_button_clicked = self.key
+        if self._key is not None:
+            self.parent_form_for_buttons.last_button_clicked = self._key
         else:
             self.parent_form_for_buttons.last_button_clicked = '__GRAPH__'  # need to put something rather than None
         if self.motion_events and not self.mouse_button_down:
@@ -7749,7 +7744,7 @@ class Frame(Container, Element[tk.Frame]):
     A Frame Element that contains other Elements. Encloses with a line around elements and a text label.
     """
 
-    def __init__(self, title, layout, *, title_color=None, title_location=None, relief=DEFAULTS.FRAME_RELIEF,
+    def __init__(self, title, layout, *, title_color=None, title_font=None, title_location=None, relief=DEFAULTS.FRAME_RELIEF,
                  grab=None, element_justification='left', vertical_alignment=None, **kwargs):
         """
         :param title:                 text that is displayed as the Frame's "label" or title
@@ -7778,12 +7773,14 @@ class Frame(Container, Element[tk.Frame]):
         self.title = title
         self.relief = relief
         self.title_location = title_location
-        self.container_elemement_number = Window._GetAContainerNumber()
+        self.container_elemement_number = Window._get_a_container_number()
         self.vertical_alignment = vertical_alignment
         self._widget = None  # type: tk.LabelFrame
         self.grab = grab
+        self._title_color = title_color
+        self._title_font = title_font
 
-        super().__init__(text_color=title_color, layout=layout, **kwargs)
+        super().__init__(layout=layout, **kwargs)
 
     @_ensure_widget_created
     def update(self, value=None, visible=None):
@@ -7815,6 +7812,14 @@ class Frame(Container, Element[tk.Frame]):
             self._visible = visible
 
     @property
+    def title_color(self):
+        return self._title_color
+
+    @property
+    def title_font(self):
+        return self._title_font
+
+    @property
     def TKFrame(self) -> tk.LabelFrame:  # noqa: N802
         """For Backwards-compatability only, returns the widget"""
         print("Use of frame_obj.TKFrame is depricated, use frame_obj.widget instead")
@@ -7823,7 +7828,7 @@ class Frame(Container, Element[tk.Frame]):
     def _create_widget(self):
         self._widget = tk.LabelFrame(self.tk_parent_frame, text=self.title, relief=self.relief)
         
-    def _modify_config_dict(self, config_dict):
+    def _modify_config_dict(self, config_dict:dict):
         if self._size != (None, None):
             self._widget.config(width=self.size[0], height=self.size[1])
             self._widget.pack_propagate(0)
@@ -7831,12 +7836,16 @@ class Frame(Container, Element[tk.Frame]):
         if self.background_color not in {COLOR_SYSTEM_DEFAULT, None}:
             config_dict['highlightbackground'] = self.background_color
             config_dict['highlightcolor'] = self.background_color
-        if self.font is not None:
-            config_dict['font'] = self.font
+        if self._title_font is not None:
+            config_dict['font'] = self._title_font
         if self.title_location is not None:
             config_dict['labelanchor'] = self.title_location
         if self.border_width is not None:
             config_dict['borderwidth'] = self.border_width
+        if self._title_color is not None:
+            config_dict['foreground'] = self._title_color
+        else:
+            config_dict.pop('foreground', None)
     
     def _modify_pack_dict(self, pack_dict):
         if self.vertical_alignment is None:
@@ -7995,7 +8004,7 @@ class Tab(Container, Element[tk.Frame]):
         self.title = title
         self._disabled = disabled
         self.tab_id = None
-        self.container_elemement_number = Window._GetAContainerNumber()
+        self.container_elemement_number = Window._get_a_container_number()
 
         super().__init__(text_color=title_color, layout=layout, **kwargs)
 
@@ -8112,7 +8121,7 @@ class Tab(Container, Element[tk.Frame]):
         except Exception as e:
             _error_popup_with_traceback("Your Window has an Tab Element with an IMAGE problem",
                                         "The traceback will show you the Window with the problem layout",
-                                        f"Look in this Window's layout for an Image element that has a key of {self.key}",
+                                        f"Look in this Window's layout for an Image element that has a key of {self._key}",
                                         "The error occuring is", e)
 
     def _post_pack(self):
@@ -8139,7 +8148,7 @@ class Tab(Container, Element[tk.Frame]):
 
         # self.parent_form.widget = self.parent_form.widget
         self.tab_id = self.parent_form.tab_count
-        self.parent_form.tab_index_to_key[self.tab_id] = self.key      # has a list of the tabs in the notebook and their associated key
+        self.parent_form.tab_index_to_key[self.tab_id] = self._key      # has a list of the tabs in the notebook and their associated key
         self.parent_form.tab_count += 1
         # if element.BorderWidth is not None:
         #     element._widget.configure(borderwidth=element.BorderWidth)
@@ -8219,7 +8228,7 @@ class TabGroup(Container, Element[ttk.Notebook]):
         for row in self.rows:
             for element in row:
                 if element.title == tab_name:
-                    return element.key
+                    return element._key
         return None
 
     def find_currently_active_tab_key(self):
@@ -8258,8 +8267,8 @@ class TabGroup(Container, Element[ttk.Notebook]):
         self._verified_row(tab_element)
         tab_element._widget = tk.Frame(self._widget)
         form = self.parent_form_for_buttons
-        form._BuildKeyDictForWindow(tab_element, form.all_keys_dict)
-        form.all_keys_dict[tab_element.key] = tab_element
+        form._build_key_dict_for_window(tab_element, form.all_keys_dict)
+        form.all_keys_dict[tab_element._key] = tab_element
         # Pack the tab's layout into the tab. NOTE - This does NOT pack the Tab itself... for that see below...
         tab_element.pack_form_into_frame(tab_element._widget, self.parent_form_for_buttons)
 
@@ -8281,7 +8290,7 @@ class TabGroup(Container, Element[ttk.Notebook]):
             photo = None
             _error_popup_with_traceback("Your Window has an Tab Element with an IMAGE problem",
                                         "The traceback will show you the Window with the problem layout",
-                                        f"Look in this Window's layout for an Image tab_element that has a key of {tab_element.key}",
+                                        f"Look in this Window's layout for an Image tab_element that has a key of {tab_element._key}",
                                         "The error occuring is:", e)
 
         tab_element.photo = photo
@@ -8518,8 +8527,8 @@ class Slider(Element[tk.Scale]):
         :type event:
         """
 
-        if self.key is not None:
-            self.parent_form_for_buttons.last_button_clicked = self.key
+        if self._key is not None:
+            self.parent_form_for_buttons.last_button_clicked = self._key
         else:
             self.parent_form_for_buttons.last_button_clicked = ''
         self.parent_form_for_buttons.form_remained_open = True
@@ -8739,7 +8748,7 @@ class Column(Container, Element[tk.Frame]):
         self.vertical_scroll_only = vertical_scroll_only
         self.element_frame = None
 
-        self.container_elemement_number = Window._GetAContainerNumber()
+        self.container_elemement_number = Window._get_a_container_number()
         self.vertical_alignment = vertical_alignment
         self.grab = grab
         self.size_subsample_width = size_subsample_width
@@ -8871,7 +8880,7 @@ class Pane(Container, Element[tk.PanedWindow]):
     A sliding Pane that is unique to tkinter.  Uses Columns to create individual panes
     """
 
-    def __init__(self, pane_list:list[Column] | tuple[Column], *, background_color=None, orientation='vertical',
+    def __init__(self, pane_list:list[Column] | tuple[Column], *, orientation='vertical',
                  show_handle=True, relief=RELIEFS.RAISED, handle_size=None, **kwargs):
         """
         :param pane_list:        Must be a list of Column Elements. Each Column supplied becomes one pane that's shown
@@ -9354,8 +9363,8 @@ class Menu(Element[tk.Menu]):
     
     def _get_default_configure_dict(self):
         conf_dict = {}
-        if self.font is not None:  # if a font is used, make sure it's saved in the element
-            self._font = self.font
+        # if self.font is not None:  # if a font is used, make sure it's saved in the element
+        #     self._font = self.font
         conf_dict['borderwidth'] = 0
         conf_dict['relief'] = 'flat'
         if self.background_color not in (COLOR_SYSTEM_DEFAULT, None):
@@ -9623,8 +9632,8 @@ class Table(Element[ttk.Treeview]):
         selections = self._widget.selection()
         self.selected_rows = [int(x) - 1 for x in selections]
         if self.enable_events:
-            if self.key is not None:
-                self.parent_form_for_buttons.last_button_clicked = self.key
+            if self._key is not None:
+                self.parent_form_for_buttons.last_button_clicked = self._key
             else:
                 self.parent_form_for_buttons.last_button_clicked = ''
             self.parent_form_for_buttons.form_remained_open = True
@@ -9641,8 +9650,8 @@ class Table(Element[ttk.Treeview]):
         selections = self._widget.selection()
         self.selected_rows = [int(x) - 1 for x in selections]
         if self.bind_return_key:  # Signifies BOTH a return key AND a double click
-            if self.key is not None:
-                self.parent_form_for_buttons.last_button_clicked = self.key
+            if self._key is not None:
+                self.parent_form_for_buttons.last_button_clicked = self._key
             else:
                 self.parent_form_for_buttons.last_button_clicked = ''
             self.parent_form_for_buttons.form_remained_open = True
@@ -9674,9 +9683,9 @@ class Table(Element[ttk.Treeview]):
             else:
                 column = None
         except Exception as e:
-            warnings.warn(f"Error getting table click data for table with key= {self.key}\nError: {e}", UserWarning, stacklevel=2)
+            warnings.warn(f"Error getting table click data for table with key= {self._key}\nError: {e}", UserWarning, stacklevel=2)
             if not SUPPRESS_ERROR_POPUPS:
-                _error_popup_with_traceback(f"Unable to complete operation getting the clicked event for table with key {self.key}", _create_error_message(), e, 'Event data:', obj_to_string_single_obj(event))
+                _error_popup_with_traceback(f"Unable to complete operation getting the clicked event for table with key {self._key}", _create_error_message(), e, 'Event data:', obj_to_string_single_obj(event))
             row = column = None
 
         self.last_clicked_position = (row, column)
@@ -9694,8 +9703,8 @@ class Table(Element[ttk.Treeview]):
         self.selected_rows = [int(x) - 1 for x in selections]
         # print('The new selected rows = ', self.SelectedRows, 'selections =', selections)
         if self.enable_click_events is True:
-            if self.key is not None:
-                self.parent_form_for_buttons.last_button_clicked = (self.key, TABLE_CLICKED_INDICATOR, (row, column))
+            if self._key is not None:
+                self.parent_form_for_buttons.last_button_clicked = (self._key, TABLE_CLICKED_INDICATOR, (row, column))
             else:
                 self.parent_form_for_buttons.last_button_clicked = ''
             self.parent_form_for_buttons.form_remained_open = True
@@ -10054,8 +10063,8 @@ class Tree(Element[ttk.Treeview]):
         self.selected_rows = [self.id_to_key[x] for x in selections]
 
         if self.enable_events:
-            if self.key is not None:
-                self.parent_form_for_buttons.last_button_clicked = self.key
+            if self._key is not None:
+                self.parent_form_for_buttons.last_button_clicked = self._key
             else:
                 self.parent_form_for_buttons.last_button_clicked = ''
             self.parent_form_for_buttons.form_remained_open = True
@@ -10356,7 +10365,7 @@ class TreeData:
     and an icon.  The entire tree is built using a single method, Insert.  Nothing else is required to make the tree.
     """
 
-    class node:
+    class _Node:
         """
         Contains information about the individual node in the tree
         """
@@ -10377,25 +10386,25 @@ class TreeData:
             :type icon:    str | bytes
             """
 
-            self.parent = parent  # type: TreeData.node
-            self.children = []  # type: list[TreeData.node]
+            self.parent = parent  # type: TreeData._Node
+            self.children = []  # type: list[TreeData._Node]
             self.key = key  # type: str
             self.text = text  # type: str
-            self.values = values  # type: list[Any]
+            self.values = values  # type: list
             self.icon = icon  # type: str | bytes
 
-        def _Add(self, node):
+        def _add(self, node):
             self.children.append(node)
 
     def __init__(self):
         """
         Instantiate the object, initializes the Tree Data, creates a root node for you
         """
-        self.tree_dict = {}  # type: Dict[str, TreeData.node]
-        self.root_node = self.node("", "", 'root', [], None)  # The root node
+        self.tree_dict = {}  # type: dict[str, TreeData._Node]
+        self.root_node = self._Node("", "", 'root', [], None)  # The root node
         self.tree_dict[""] = self.root_node  # Start the tree out with the root node
 
-    def _AddNode(self, key, node):
+    def _add_node(self, key, node):
         """
         Adds a node to tree dictionary (not user callable)
 
@@ -10423,10 +10432,10 @@ class TreeData:
         :type icon:    str | bytes
         """
 
-        node = self.node(parent, key, text, values, icon)
+        node = self._Node(parent, key, text, values, icon)
         self.tree_dict[key] = node
         parent_node = self.tree_dict[parent]
-        parent_node._Add(node)
+        parent_node._add(node)
 
     def __repr__(self):
         """
@@ -10435,9 +10444,9 @@ class TreeData:
         :return: (str) A formatted, text version of the TreeData
         :rtype:
         """
-        return self._NodeStr(self.root_node, 1)
+        return self._node_str(self.root_node, 1)
 
-    def _NodeStr(self, node, level):
+    def _node_str(self, node, level):
         """
         Does the magic of converting the TreeData into a nicely formatted string version
 
@@ -10448,7 +10457,7 @@ class TreeData:
         """
         return '\n'.join(
             [str(node.key) + ' : ' + str(node.text) + ' [ ' +  ', '.join([str(v) for v in node.values])  +' ]'] +
-            [' ' * 4 * level + self._NodeStr(child, level + 1) for child in node.children])
+            [' ' * 4 * level + self._node_str(child, level + 1) for child in node.children])
 
     Insert = insert
 
@@ -10466,7 +10475,7 @@ class ErrorElement(Element):
         :param key: Used with window.find_element and with return values to uniquely identify this element
         :type key:
         """
-        self.key = key
+        self._key = key
 
         super().__init__(key=key)
 
@@ -10679,7 +10688,7 @@ class Window(Container):
                  default_button_element_size=(None, None),
                  auto_size_text=None, auto_size_buttons=None, location=(None, None), relative_location=(None, None), size=(None, None),
                  element_padding: int | list[int] | list[list[int]] | None = None, margins=(None, None), button_color=None, font=None,
-                 progress_bar_color=(None, None), background_color=None, border_depth=None, auto_close=False,
+                 progress_bar_color=(None, None), background_color=None, text_color=None, border_depth=None, auto_close=False,
                  auto_close_duration=DEFAULTS.AUTOCLOSE_TIME, icon=None, force_toplevel=False,
                  alpha_channel=None, return_keyboard_events=False, use_default_focus=True, text_justification=None,
                  no_titlebar=False, grab_anywhere=False, grab_anywhere_using_control=True, keep_on_top=None, resizable=False, disable_close=False,
@@ -10837,8 +10846,9 @@ class Window(Container):
         self.relative_loction = relative_location
         self.button_color = button_color_to_tuple(button_color)
         self.background_color = background_color or DEFAULTS.BACKGROUND_COLOR
+        self.text_color = text_color or DEFAULTS.TEXT_COLOR
         self.parent_window = None
-        self._font = font or DEFAULTS.FONT
+        self._font = font
         self.radio_dict = {}
         self.border_depth = border_depth
         if icon:
@@ -10905,7 +10915,7 @@ class Window(Container):
             self.element_padding = element_padding
         self.right_click_menu = right_click_menu
         self.margins = margins if margins != (None, None) else DEFAULTS.MARGINS
-        self.container_elemement_number = Window._GetAContainerNumber()
+        self.container_elemement_number = Window._get_a_container_number()
         # The dictionary containing all elements and keys for the window
         # The keys are the keys for the elements and the values are the elements themselves.
         self.all_keys_dict = {}
@@ -10988,7 +10998,7 @@ class Window(Container):
 
 
     @classmethod
-    def _GetAContainerNumber(cls):
+    def _get_a_container_number(cls):
         """
         Not user callable!
         :return: A simple counter that makes each container element unique
@@ -10998,7 +11008,7 @@ class Window(Container):
         return cls._container_element_counter
 
     @classmethod
-    def _IncrementOpenCount(cls):
+    def _increment_open_count(cls):
         """
         Not user callable!  Increments the number of open windows
         Note - there is a bug where this count easily gets out of sync. Issue has been opened already. No ill effects
@@ -11007,7 +11017,7 @@ class Window(Container):
         # print('+++++ INCREMENTING Num Open Windows = {} ---'.format(Window.NumOpenWindows))
 
     @classmethod
-    def _DecrementOpenCount(cls):
+    def _decrement_open_count(cls):
         """
         Not user callable!  Decrements the number of open windows
         """
@@ -11113,7 +11123,7 @@ class Window(Container):
         column._pack_contained_elements(frame, self)
         # sg.PackFormIntoFrame(col, window.TKroot, window)
         self._verified_row(column)
-        self._BuildKeyDictForWindow(column, self.all_keys_dict)
+        self._build_key_dict_for_window(column, self.all_keys_dict)
         return self
 
     def _show(self, *, non_blocking=False):
@@ -11159,7 +11169,7 @@ class Window(Container):
         _startup_tk(self)
         # If a button or keyboard event happened but no results have been built, build the results
         if self.last_keyboard_event is not None or self.last_button_clicked is not None:
-            return _BuildResults(self)
+            return _build_results(self)
         return self.return_values
 
     # ------------------------- SetIcon - set the window's fav icon ------------------------- #
@@ -11208,7 +11218,7 @@ class Window(Container):
                     pass
         self.window_icon = wicon
 
-    def _GetDefaultElementSize(self):
+    def _get_default_element_size(self):
         """
         Returns the default elementSize
 
@@ -11218,7 +11228,7 @@ class Window(Container):
 
         return self.default_element_size
 
-    def _AutoCloseAlarmCallback(self):
+    def _auto_close_alarm_callback(self):
         """
         Function that's called by tkinter when autoclode timer expires.  Closes the window
 
@@ -11229,13 +11239,13 @@ class Window(Container):
                 if window.non_blocking:
                     self.close()
                 else:
-                    window._Close()
+                    window._close()
                     self.tk_root.quit()
                     self.root_needs_destroying = True
         except Exception:
             pass
 
-    def _TimeoutAlarmCallback(self):
+    def _timeout_alarm_callback(self):
         """
         Read Timeout Alarm callback. Will kick a mainloop call out of the tkinter event loop and cause it to return
         """
@@ -11375,7 +11385,7 @@ class Window(Container):
 
         # if there are events in the thread event queue, then return those events before doing anything else.
         if self._queued_thread_event_available():
-            self.return_values = results = _BuildResults(self)
+            self.return_values = results = _build_results(self)
             return results
 
         if self.finalize_in_progress and self.auto_close_timer_needs_starting:
@@ -11384,7 +11394,7 @@ class Window(Container):
 
         timeout = int(timeout) if timeout is not None else None
         if timeout == 0:  # timeout of zero runs the old readnonblocking
-            event, values = self._ReadNonBlocking()
+            event, values = self._read_non_blocking()
             if event is None:
                 event = timeout_key
             if values is None:
@@ -11405,13 +11415,13 @@ class Window(Container):
         else:
             # if already have a button waiting, then return previously built results
             if self.last_button_clicked is not None and not self.last_button_clicked_was_realtime:
-                results = _BuildResults(self)
+                results = _build_results(self)
                 self.last_button_clicked = None
                 return results
             
             initialize_results(self)
             if self._queued_thread_event_available():
-                self.return_values = results = _BuildResults(self)
+                self.return_values = results = _build_results(self)
                 return results
 
             # if the last button clicked was realtime, emulate a read non-blocking
@@ -11428,10 +11438,10 @@ class Window(Container):
                     self.tk_root.update()
                 except Exception:
                     self.tk_root_destroyed = True
-                    Window._DecrementOpenCount()
+                    Window._decrement_open_count()
                     # _my_windows.Decrement()
                     # print('ROOT Destroyed')
-                results = _BuildResults(self)
+                results = _build_results(self)
                 if results[0] is not None and results[0] != timeout_key:
                     return results
 
@@ -11451,7 +11461,7 @@ class Window(Container):
             # normal read blocking code....
             if timeout is not None:
                 self.timer_cancelled = False
-                self.tk_after_id = self.tk_root.after(timeout, self._TimeoutAlarmCallback)
+                self.tk_after_id = self.tk_root.after(timeout, self._timeout_alarm_callback)
             self.currently_running_mainloop = True
             # self.TKroot.protocol("WM_DESTROY_WINDOW", self._OnClosingCallback)
             # self.TKroot.protocol("WM_DELETE_WINDOW", self._OnClosingCallback)
@@ -11478,23 +11488,23 @@ class Window(Container):
                     self.tk_root.destroy()
                 except Exception:
                     pass
-                Window._DecrementOpenCount()
+                Window._decrement_open_count()
                 # _my_windows.Decrement()
                 self.last_button_clicked = None
                 return None, None
             # if form was closed with X
             if self.last_button_clicked is None and self.last_keyboard_event is None and self.return_values[0] is None:
-                Window._DecrementOpenCount()
+                Window._decrement_open_count()
                 # _my_windows.Decrement()
         # Determine return values
         if self.last_keyboard_event is not None or self.last_button_clicked is not None:
-            results = _BuildResults(self)
+            results = _build_results(self)
             if not self.last_button_clicked_was_realtime:
                 self.last_button_clicked = None
             return results
         
         if self._queued_thread_event_available():
-            self.return_values = results = _BuildResults(self)
+            self.return_values = results = _build_results(self)
             return results
         if not self.x_found and self.timeout != 0 and self.timeout is not None and self.return_values[
             0] is None:  # Special Qt case because returning for no reason so fake timeout
@@ -11504,7 +11514,7 @@ class Window(Container):
             self.return_values = self.timeout_key, self.return_values[1]  # fake a timeout
         return self.return_values
 
-    def _ReadNonBlocking(self):
+    def _read_non_blocking(self):
         """
         Should be NEVER called directly by the user.  The user can call Window.read(timeout=0) to get same effect
 
@@ -11525,27 +11535,27 @@ class Window(Container):
             self.tk_root.update()
         except Exception:
             self.tk_root_destroyed = True
-            Window._DecrementOpenCount()
+            Window._decrement_open_count()
             # _my_windows.Decrement()
             # print("read failed")
             # return None, None
         if self.root_needs_destroying:
             # print('*** DESTROYING LATE ***', self.ReturnValues)
             self.tk_root.destroy()
-            Window._DecrementOpenCount()
+            Window._decrement_open_count()
             # _my_windows.Decrement()
             self.values = None
             self.last_button_clicked = None
             return None, None
-        return _BuildResults(self)
+        return _build_results(self)
     
     def add_return_value(self, element:Element, value):
         self.return_values_list.append(value)
-        self.return_values_dict[element.key] = value
+        self.return_values_dict[element._key] = value
 
     def _start_autoclose_timer(self):
         duration = DEFAULTS.AUTOCLOSE_TIME if self.auto_close_duration is None else self.auto_close_duration
-        self.tk_after_id = self.tk_root.after(int(duration * 1000), self._AutoCloseAlarmCallback)
+        self.tk_after_id = self.tk_root.after(int(duration * 1000), self._auto_close_alarm_callback)
     
     def finalize(self):
         """
@@ -11708,11 +11718,10 @@ class Window(Container):
         Builds a dictionary containing all elements with keys for this window.
         """
         self.all_keys_dict.clear()
-        for row in self.rows:
-            for element in row:
-                element._build_key_dict(self.all_keys_dict)
+        for element in self:
+            element._build_key_dict(self.all_keys_dict)
 
-    def _BuildKeyDictForWindow(self, window: typing.Self | Container, key_dict: dict):
+    def _build_key_dict_for_window(self, window: typing.Self | Container, key_dict: dict):
         """
         Loop through all Rows and all Container Elements for this window and create the keys for all of them.
         Note that the calls are recursive as all pathes must be walked
@@ -11774,7 +11783,7 @@ class Window(Container):
         :type filename:  str
         """
         try:
-            event, values = _BuildResults(self)
+            event, values = _build_results(self)
             # remove_these = []
             # for key in values:
             #     if isinstance(self.find_element(key), Button):
@@ -11895,17 +11904,17 @@ class Window(Container):
             self.maximized = False
 
 
-    def _StartMoveUsingControlKey(self, event):
+    def _start_move_using_control_key(self, event):
         """
         Used by "Grab Anywhere" style windows. This function is bound to mouse-down. It marks the beginning of a drag.
         :param event: event information passed in by tkinter. Contains x,y position of mouse
         :type event:  (event)
         """
 
-        self._StartMove(event)
+        self._start_move(event)
 
 
-    def _StartMoveGrabAnywhere(self, event):
+    def _start_move_grab_anywhere(self, event):
         """
         Used by "Grab Anywhere" style windows. This function is bound to mouse-down. It marks the beginning of a drag.
         :param event: event information passed in by tkinter. Contains x,y position of mouse
@@ -11915,10 +11924,10 @@ class Window(Container):
             # print('Found widget to ignore in grab anywhere...')
             return
 
-        self._StartMove(event)
+        self._start_move(event)
 
 
-    def _StartMove(self, event):
+    def _start_move(self, event):
         try:
             geometry = self.tk_root.geometry()
             location = geometry[geometry.find('+')+1:].split('+')
@@ -11940,7 +11949,7 @@ class Window(Container):
 
 
 
-    def _StopMove(self, event):
+    def _stop_move(self, event):
         """
         Used by "Grab Anywhere" style windows. This function is bound to mouse-up. It marks the ending of a drag.
         Sets the position of the window to this final x,y coordinates
@@ -11950,11 +11959,11 @@ class Window(Container):
         return
 
 
-    def _OnMotionUsingControlKey(self, event):
-        self._OnMotion(event)
+    def _on_motion_using_control_key(self, event):
+        self._on_motion(event)
 
 
-    def _OnMotionGrabAnywhere(self, event):
+    def _on_motion_grab_anywhere(self, event):
 
         """
         Used by "Grab Anywhere" style windows. This function is bound to mouse motion. It actually moves the window
@@ -11965,10 +11974,10 @@ class Window(Container):
             # print('Found widget to ignore in grab anywhere...')
             return
 
-        self._OnMotion(event)
+        self._on_motion(event)
 
 
-    def _OnMotion(self, event):
+    def _on_motion(self, event):
         try:
 
             _mousex = event.x + event.widget.winfo_rootx()
@@ -12070,7 +12079,7 @@ class Window(Container):
                 # window.config_last_location = (x,y)
     """
 
-    def _KeyboardCallback(self, event):
+    def _keyboard_callback(self, event):
         """
         Window keyboard callback. Called by tkinter.  Will kick user out of the tkinter event loop. Should only be
         called if user has requested window level keyboard events
@@ -12088,7 +12097,7 @@ class Window(Container):
         #     _BuildResults(self, False, self)
         _exit_mainloop(self)
 
-    def _MouseWheelCallback(self, event):
+    def _mouse_wheel_callback(self, event):
         """
         Called by tkinter when a mouse wheel event has happened. Only called if keyboard events for the window
         have been enabled
@@ -12103,7 +12112,7 @@ class Window(Container):
         #     _BuildResults(self, False, self)
         _exit_mainloop(self)
 
-    def _Close(self, *, without_event=False):
+    def _close(self, *, without_event=False):
         """
         The internal close call that does the real work of building. This method basically sets up for closing
         but doesn't destroy the window like the User's version of Close does
@@ -12118,7 +12127,7 @@ class Window(Container):
             pass
 
         if not self.non_blocking or not without_event:
-            _BuildResults(self)
+            _build_results(self)
         if self.tk_root_destroyed:
             return
         self.tk_root_destroyed = True
@@ -12154,7 +12163,7 @@ class Window(Container):
         try:
             self.tk_root.destroy()
             self.tk_root.update()
-            Window._DecrementOpenCount()
+            Window._decrement_open_count()
         except Exception:
             pass
         # if down to 1 window, try and destroy the hidden window, if there is one
@@ -12174,6 +12183,10 @@ class Window(Container):
     @property
     def toplevel_form(self):
         return self
+
+    @property
+    def font(self):
+        return self._font or DEFAULTS.FONT
 
     def is_closed(self, quick_check=None):
         """
@@ -12201,7 +12214,7 @@ class Window(Container):
 
 
     # IT FINALLY WORKED! 29-Oct-2018 was the first time this damned thing got called
-    def _OnClosingCallback(self):
+    def _on_closing_callback(self):
         """
         Internally used method ONLY. Not sure callable.  tkinter calls this when the window is closed by clicking X
         """
@@ -12564,9 +12577,9 @@ class Window(Container):
         """
         if not self._is_window_created('tried Window.grab_any_where_on'):
             return
-        self.tk_root.bind("<ButtonPress-1>", self._StartMoveGrabAnywhere)
-        self.tk_root.bind("<ButtonRelease-1>", self._StopMove)
-        self.tk_root.bind("<B1-Motion>", self._OnMotionGrabAnywhere)
+        self.tk_root.bind("<ButtonPress-1>", self._start_move_grab_anywhere)
+        self.tk_root.bind("<ButtonRelease-1>", self._stop_move)
+        self.tk_root.bind("<B1-Motion>", self._on_motion_grab_anywhere)
 
     def grab_any_where_off(self):
         """
@@ -13067,7 +13080,7 @@ class Window(Container):
                     self.maximize()
         elif key == TITLEBAR_CLOSE_KEY:
             if not self.disable_close:
-                self._OnClosingCallback()
+                self._on_closing_callback()
 
 
     def timer_start(self, *, frequency_ms, key=EVENT_TIMER, repeating=True):
@@ -13266,7 +13279,7 @@ def read_all_windows(timeout=None, timeout_key=TIMEOUT_KEY):
     # first see if any queued events are waiting for any of the windows
     for window in Window._active_windows():
         if window._queued_thread_event_available():
-            _BuildResults(window)
+            _build_results(window)
             event, values = window.return_values
             return window, event, values
 
@@ -13321,7 +13334,7 @@ def read_all_windows(timeout=None, timeout_key=TIMEOUT_KEY):
             pass
             # print('Error deleting window, but OK')
     else:
-        _BuildResults(window)
+        _build_results(window)
         event, values = window.return_values
 
     return window, event, values
@@ -15082,7 +15095,7 @@ def _add_to_return_list(form, value):
 # ----------------------------------------------------------------------------#
 # -------  FUNCTION InitializeResults.  Sets up form results matrix  --------#
 def initialize_results(form):
-    _BuildResults(form, initialize_only=True)
+    _build_results(form, initialize_only=True)
 
 
 # =====  Radio Button RadVar encoding and decoding =====#
@@ -15101,7 +15114,7 @@ def encode_radio_row_col(container: int, row: int, col: int):
 # -------  FUNCTION BuildResults.  Form exiting so build the results to pass back  ------- #
 # format of return values is
 # (Button Pressed, input_values)
-def _BuildResults(window: Window, *, initialize_only: bool = False):
+def _build_results(window: Window, *, initialize_only: bool = False):
     # Results for elements are:
     #   TEXT - Nothing
     #   INPUT - Read value from TK
@@ -15340,7 +15353,7 @@ def _change_ttk_theme(style:ttk.Style, theme_name:str):
 
 def _make_ttk_style_name(*, base_style:str, element:Element, primary_style=False):
     Window._counter_for_ttk_widgets += 1
-    style_name = f'{Window._counter_for_ttk_widgets}___{element.key}{base_style}'
+    style_name = f'{Window._counter_for_ttk_widgets}___{element._key}{base_style}'
     if primary_style:
         element.ttk_style_name = style_name
     return style_name
@@ -15487,7 +15500,7 @@ def _get_hidden_master_root():
 
     # if one is already made, then skip making another
     if Window.hidden_master_root is None:
-        Window._IncrementOpenCount()
+        Window._increment_open_count()
         Window.hidden_master_root = tk.Tk()
         Window.hidden_master_root.attributes('-alpha', 0)  # HIDE this window really really really
         # if not running_mac():
@@ -15643,7 +15656,7 @@ def _startup_tk(window: Window):
 
     if window.background_color is not None and window.background_color != COLOR_SYSTEM_DEFAULT:
         root.configure(background=window.background_color)
-    Window._IncrementOpenCount()
+    Window._increment_open_count()
 
     window.tk_root = root
 
@@ -15680,14 +15693,14 @@ def _startup_tk(window: Window):
     if (window.grab_anywhere is not False and not (
             window.non_blocking and window.grab_anywhere is not True)):
         if not (ENABLE_MAC_DISABLE_GRAB_ANYWHERE_WITH_TITLEBAR and running_mac and not window.no_title_bar):
-            root.bind("<ButtonPress-1>", window._StartMoveGrabAnywhere)
-            root.bind("<ButtonRelease-1>", window._StopMove)
-            root.bind("<B1-Motion>", window._OnMotionGrabAnywhere)
+            root.bind("<ButtonPress-1>", window._start_move_grab_anywhere)
+            root.bind("<ButtonRelease-1>", window._stop_move)
+            root.bind("<B1-Motion>", window._on_motion_grab_anywhere)
     if (window.grab_anywhere_using_control_key is not False and not (
             window.non_blocking and window.grab_anywhere_using_control_key is not True)):
-        root.bind("<Control-Button-1>", window._StartMoveUsingControlKey)
-        root.bind("<Control-ButtonRelease-1>", window._StopMove)
-        root.bind("<Control-B1-Motion>", window._OnMotionUsingControlKey)
+        root.bind("<Control-Button-1>", window._start_move_using_control_key)
+        root.bind("<Control-ButtonRelease-1>", window._stop_move)
+        root.bind("<Control-B1-Motion>", window._on_motion_using_control_key)
         # also enable movement using Control + Arrow key
         root.bind("<Control-Left>", window._move_callback)
         root.bind("<Control-Right>", window._move_callback)
@@ -15703,15 +15716,15 @@ def _startup_tk(window: Window):
         # pass
 
     if window.return_keyboard_events and not window.non_blocking:
-        root.bind("<KeyRelease>", window._KeyboardCallback)
-        root.bind("<MouseWheel>", window._MouseWheelCallback)
-        root.bind("<Button-4>", window._MouseWheelCallback)
-        root.bind("<Button-5>", window._MouseWheelCallback)
+        root.bind("<KeyRelease>", window._keyboard_callback)
+        root.bind("<MouseWheel>", window._mouse_wheel_callback)
+        root.bind("<Button-4>", window._mouse_wheel_callback)
+        root.bind("<Button-5>", window._mouse_wheel_callback)
     elif window.return_keyboard_events:
-        root.bind("<Key>", window._KeyboardCallback)
-        root.bind("<MouseWheel>", window._MouseWheelCallback)
-        root.bind("<Button-4>", window._MouseWheelCallback)
-        root.bind("<Button-5>", window._MouseWheelCallback)
+        root.bind("<Key>", window._keyboard_callback)
+        root.bind("<MouseWheel>", window._mouse_wheel_callback)
+        root.bind("<Button-4>", window._mouse_wheel_callback)
+        root.bind("<Button-5>", window._mouse_wheel_callback)
 
     DEFAULT_WINDOW_SNAPSHOT_KEY_CODE = main_global_get_screen_snapshot_symcode()
 
@@ -15731,10 +15744,10 @@ def _startup_tk(window: Window):
             # window.TKAfterID = root.after(int(duration * 1000), window._AutoCloseAlarmCallback)
 
     if window.timeout is not None:
-        window.tk_after_id = root.after(int(window.timeout), window._TimeoutAlarmCallback)
+        window.tk_after_id = root.after(int(window.timeout), window._timeout_alarm_callback)
 
-    window.tk_root.protocol("WM_DESTROY_WINDOW", window._OnClosingCallback)
-    window.tk_root.protocol("WM_DELETE_WINDOW", window._OnClosingCallback)
+    window.tk_root.protocol("WM_DESTROY_WINDOW", window._on_closing_callback)
+    window.tk_root.protocol("WM_DELETE_WINDOW", window._on_closing_callback)
 
     if not window.non_blocking:
         # print('..... CALLING MainLoop')
@@ -15754,7 +15767,7 @@ def _startup_tk(window: Window):
         window.timer_cancelled = True
         # print('..... BACK from MainLoop')
         if not window.form_remained_open:
-            Window._DecrementOpenCount()
+            Window._decrement_open_count()
             # _my_windows.Decrement()
         if window.root_needs_destroying:
             try:
@@ -15815,7 +15828,7 @@ def _set_icon_for_tkinter_window(root, icon=None, pngbase64=None):
 # ==============================_GetNumLinesNeeded ==#
 # Helper function for determining how to wrap text   #
 # ===================================================#
-def _GetNumLinesNeeded(text:str, max_line_width:int):
+def _get_num_lines_needed(text:str, max_line_width:int):
     if max_line_width == 0:
         return 1
     return sum(
@@ -15840,7 +15853,7 @@ def convert_args_to_single_string(*args):
         longest_line_len = max([len(line) for line in message.split('\n')])
         width_used = max(longest_line_len, width_used)
         max_line_total = max(max_line_total, width_used)
-        lines_needed = _GetNumLinesNeeded(message, width_used)
+        lines_needed = _get_num_lines_needed(message, width_used)
         total_lines += lines_needed
         single_line_message += message + '\n'
     return single_line_message, width_used, total_lines
@@ -15935,7 +15948,7 @@ class _QuickMeter:
 
         return self.window
 
-    def UpdateMeter(self, current_value, max_value, *args):  ### support for *args when updating
+    def update_meter(self, current_value, max_value, *args):  ### support for *args when updating
         self.current_value = current_value
         self.max_value = max_value
         self.window.find_element('-PROG-').update_bar(self.current_value, self.max_value)
@@ -16137,7 +16150,7 @@ class _DebugWin:
                           do_not_reroute_stdout=self.do_not_reroute_stdout, resizable=self.resizable, echo_stdout=self.echo_stdout)
 
 
-    def Print(self, *args, end=None, sep=None, text_color=None, background_color=None, erase_all=False, font=None, blocking=None):
+    def print(self, *args, end=None, sep=None, text_color=None, background_color=None, erase_all=False, font=None, blocking=None):
         global SUPPRESS_WIDGET_NOT_FINALIZED_WARNINGS
         suppress = SUPPRESS_WIDGET_NOT_FINALIZED_WARNINGS
         SUPPRESS_WIDGET_NOT_FINALIZED_WARNINGS = True
@@ -16220,7 +16233,7 @@ class _DebugWin:
 
     def close(self):
         if self.window.x_found:  # increment the number of open windows to get around a bug with debug windows
-            Window._IncrementOpenCount()
+            Window._increment_open_count()
         self.window.close()
         self.window = None
 
@@ -18180,7 +18193,7 @@ def popup_scrolled(*args, title=None, button_color=None, background_color=None, 
         width_used = min(longest_line_len, width)
         max_line_total = max(max_line_total, width_used)
         max_line_width = width
-        lines_needed = _GetNumLinesNeeded(message, width_used)
+        lines_needed = _get_num_lines_needed(message, width_used)
         height_computed += lines_needed
         complete_output += message + '\n'
         total_lines += lines_needed
@@ -19505,7 +19518,7 @@ class UserSettings:
             :type user_settings_parent:         UserSettings
             """
             self.section_name = section_name
-            self.section_dict = section_dict            # type: Dict
+            self.section_dict = section_dict            # type: dict
             self.new_section = False
             self.config = config            # type: configparser.ConfigParser
             self.user_settings_parent = user_settings_parent    # type: UserSettings
@@ -20775,7 +20788,7 @@ def read_last_line():
 
 ICON_BUY_ME_A_COFFEE = b'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'
 
-class EMOJI_BASE64:
+class EMOJI_BASE64(MyConstEnum):
     FACEPALM = b'iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6REQ2OTE2M0Q2RENEMTFFQkEwODdCNUZBQjI1NEUxQTAiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6REQ2OTE2M0U2RENEMTFFQkEwODdCNUZBQjI1NEUxQTAiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpERDY5MTYzQjZEQ0QxMUVCQTA4N0I1RkFCMjU0RTFBMCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpERDY5MTYzQzZEQ0QxMUVCQTA4N0I1RkFCMjU0RTFBMCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PrG3klYAABf+SURBVHjaxFoJcFzV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'
     FRUSTRATED = b'iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6Q0YzMDVFRjE2Q0U4MTFFQkFGM0JBRTY5MjFEM0EyRkMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6Q0YzMDVFRjI2Q0U4MTFFQkFGM0JBRTY5MjFEM0EyRkMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpDRjMwNUVFRjZDRTgxMUVCQUYzQkFFNjkyMUQzQTJGQyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpDRjMwNUVGMDZDRTgxMUVCQUYzQkFFNjkyMUQzQTJGQyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PrCGivkAABgCSURBVHja3FpneFTX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'
     NOTUNDERSTANDING = b'iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTVEMDZBRDE2Q0U5MTFFQjg5MjRENTNGQzVCQkI1N0MiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTVEMDZBRDI2Q0U5MTFFQjg5MjRENTNGQzVCQkI1N0MiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1NUQwNkFDRjZDRTkxMUVCODkyNEQ1M0ZDNUJCQjU3QyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1NUQwNkFEMDZDRTkxMUVCODkyNEQ1M0ZDNUJCQjU3QyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PoEgddAAABw3SURBVHjarFoJdBzV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'

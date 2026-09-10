@@ -13,7 +13,7 @@ from quick_tkinter import (
     Sizegrip,
     Text,
     Window,
-    _GetNumLinesNeeded,
+    _get_num_lines_needed,
     textwrap,
 )
 
@@ -258,7 +258,7 @@ def popup_scrolled(*args, title=None, button_color=None, background_color=None, 
         width_used = min(longest_line_len, width)
         max_line_total = max(max_line_total, width_used)
         max_line_width = width
-        lines_needed = _GetNumLinesNeeded(message, width_used)
+        lines_needed = _get_num_lines_needed(message, width_used)
         height_computed += lines_needed + 1
         complete_output += message + '\n'
         total_lines += lines_needed

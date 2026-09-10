@@ -42,37 +42,92 @@ def main_open_github_issue():
     frame_type = [[Radio(t, 1, size=(10, 1), enable_events=True, key=t)] for t in issue_types]
 
     v_size = (15, 1)
-    frame_versions = [[Text('Python', size=v_size), Input(sys.version, size=(20, 1), key='-VER PYTHON-')],
-                      [Text('PySimpleGUI', size=v_size), Input(ver, size=(20, 1), key='-VER PSG-')],
-                      [Text('tkinter', size=v_size), Input(tclversion_detailed, size=(20, 1), key='-VER TK-')]]
+    frame_versions = [
+        [Text('Python', size=v_size), Input(sys.version, size=(20, 1), key='-VER PYTHON-')],
+        [Text('PySimpleGUI', size=v_size), Input(ver, size=(20, 1), key='-VER PSG-')],
+        [Text('tkinter', size=v_size), Input(tclversion_detailed, size=(20, 1), key='-VER TK-')]
+    ]
 
-    frame_platforms = [[Text('OS                 '), Text('Details')],
-                       [Radio('Windows', 2, default_value=running_windows, size=(8, 1), key='-OS WIN-'), Input(size=(8, 1), key='-OS WIN VER-')],
-                       [Radio('Linux', 2, default_value=running_linux, size=(8, 1), key='-OS LINUX-'), Input(size=(8, 1), key='-OS LINUX VER-')],
-                       [Radio('Mac', 2, default_value=running_mac, size=(8, 1), key='-OS MAC-'), Input(size=(8, 1), key='-OS MAC VER-')],
-                       [Radio('Other', 2, size=(8, 1), key='-OS OTHER-'), Input(size=(8, 1), key='-OS OTHER VER-')]]
+    frame_platforms = [
+        [
+            Text('OS                 '),
+            Text('Details')
+        ],
+        [
+            Radio('Windows', 2, default_value=running_windows, size=(8, 1), key='-OS WIN-'),
+            Input(size=(8, 1), key='-OS WIN VER-')
+        ],
+        [
+            Radio('Linux', 2, default_value=running_linux, size=(8, 1), key='-OS LINUX-'),
+            Input(size=(8, 1), key='-OS LINUX VER-')
+        ],
+        [
+            Radio('Mac', 2, default_value=running_mac, size=(8, 1), key='-OS MAC-'),
+            Input(size=(8, 1), key='-OS MAC VER-')
+        ],
+        [
+            Radio('Other', 2, size=(8, 1), key='-OS OTHER-'),
+            Input(size=(8, 1), key='-OS OTHER VER-')]
+        ]
 
-    col_experience = [[Text('Optional Experience Info')],
-                      [Input(size=(4, 1), key='-EXP PROG-'), Text('Years Programming')],
-                      [Input(size=(4, 1), key='-EXP PYTHON-'), Text('Years Writing Python')],
-                      [Checkbox('Previously programmed a GUI', key='-CB PRIOR GUI-')],
-                      [Text('Share more if you want....')],
-                      [Input(size=(25, 1), key='-EXP NOTES-', expand_x=True)]]
+    col_experience = [
+        [Text('Optional Experience Info')],
+        [
+            Input(size=(4, 1), key='-EXP PROG-'),
+            Text('Years Programming')
+        ],
+        [
+            Input(size=(4, 1), key='-EXP PYTHON-'),
+            Text('Years Writing Python')
+        ],
+        [Checkbox('Previously programmed a GUI', key='-CB PRIOR GUI-')],
+        [Text('Share more if you want....')],
+        [Input(size=(25, 1), key='-EXP NOTES-', expand_x=True)]
+    ]
 
-    checklist = (('Searched main docs for your problem', 'www.PySimpleGUI.org'),
-                 ('Looked for Demo Programs that are similar to your goal.\nIt is recommend you use the Demo Browser!', 'https://Demos.PySimpleGUI.org'),
-                 ('If not tkinter - looked for Demo Programs for specific port', ''),
-                 ('For non tkinter - Looked at readme for your specific port if not PySimpleGUI (Qt, WX, Remi)', ''),
-                 ('Run your program outside of your debugger (from a command line)', ''),
-                 ('Searched through Issues (open and closed) to see if already reported', 'https://Issues.PySimpleGUI.org'),
-                 ('Upgraded to the latest official release of PySimpleGUI on PyPI', 'https://Upgrading.PySimpleGUI.org'),
-                 ('Tried using the PySimpleGUI.py file on GitHub. Your problem may have already been fixed but not released.', ''))
+    checklist = (
+        ('Searched main docs for your problem', 'www.PySimpleGUI.org'),
+        ('Looked for Demo Programs that are similar to your goal.\nIt is recommend you use the Demo Browser!', 'https://Demos.PySimpleGUI.org'),
+        ('If not tkinter - looked for Demo Programs for specific port', ''),
+        ('For non tkinter - Looked at readme for your specific port if not PySimpleGUI (Qt, WX, Remi)', ''),
+        ('Run your program outside of your debugger (from a command line)', ''),
+        ('Searched through Issues (open and closed) to see if already reported', 'https://Issues.PySimpleGUI.org'),
+        ('Upgraded to the latest official release of PySimpleGUI on PyPI', 'https://Upgrading.PySimpleGUI.org'),
+        ('Tried using the PySimpleGUI.py file on GitHub. Your problem may have already been fixed but not released.', '')
+    )
 
-    checklist_col1 = Column([[Checkbox(c, key=('-CB-', i)), Text(t, key=f"-T{i}-", enable_events=True)] for i, (c, t) in enumerate(checklist[:4])], key='-C FRAME CBs1-')
-    checklist_col2 = Column([[Checkbox(c, key=('-CB-', i + 4)), Text(t, key=f"-T{i + 4}-", enable_events=True)] for i, (c, t) in enumerate(checklist[4:])], pad=(0, 0),
-                         key='-C FRAME CBs2-')
+    checklist_col1 = Column(
+        [
+            [
+                Checkbox(c, key=('-CB-', i)),
+                Text(t, key=f"-T{i}-", enable_events=True)
+            ]
+            for i, (c, t) in enumerate(checklist[:4])
+        ],
+        key='-C FRAME CBs1-'
+    )
+
+    checklist_col2 = Column(
+        [
+            [
+                Checkbox(c, key=('-CB-', i + 4)),
+                Text(t, key=f"-T{i + 4}-", enable_events=True)
+            ]
+            for i, (c, t) in enumerate(checklist[4:])
+        ],
+        pad=(0, 0),
+        key='-C FRAME CBs2-'
+    )
+
     checklist_tabgropup = TabGroup(
-        [[Tab('Checklist 1 *', [[checklist_col1]], expand_x=True, expand_y=True), Tab('Checklist 2  *', [[checklist_col2]]), Tab('Experience', col_experience, key='-Tab Exp-', pad=(0, 0))]], expand_x=True, expand_y=True)
+        [[
+            Tab('Checklist 1 *', [[checklist_col1]], expand_x=True, expand_y=True),
+            Tab('Checklist 2  *', [[checklist_col2]]),
+            Tab('Experience', col_experience, key='-Tab Exp-', pad=(0, 0))
+        ]],
+        expand_x=True,
+        expand_y=True
+    )
 
     frame_details = [[Multiline(size=(65, 10), font='Courier 10', key='-ML DETAILS-', expand_x=True, expand_y=True)]]
 
@@ -87,37 +142,74 @@ def main_open_github_issue():
 
     frame_markdown = [[Multiline(size=(80, 10), font='Courier 8', key='-ML MARKDOWN-', expand_x=True, expand_y=True)]]
 
-    top_layout = [[Column([[Text('Open A GitHub Issue (* = Required Info)', font='_ 15')]], expand_x=True),
-                   Column([[Button('Help')]])
-                   ],
-                  [Frame('Title *', [[Input(key='-TITLE-', size=(50, 1), font='_ 14', focus=True)]], font=font_frame)],
-                  # Image(data=EMOJI_BASE64_WEARY)],
-                  vtop([
-                      Frame('Platform *', frame_platforms, font=font_frame),
-                      Frame('Type of Issue *', frame_type, font=font_frame),
-                      Frame('Versions *', frame_versions, font=font_frame),
-                  ])]
+    top_layout = [
+        [
+            Column([[Text('Open A GitHub Issue (* = Required Info)', font='_ 15')]], expand_x=True),
+            Column([[Button('Help')]])
+        ],
+        [Frame(
+            'Title *',
+            [[Input(key='-TITLE-', size=(50, 1), font='_ 14', focus=True)]],
+            title_font=font_frame
+        )],
+        # Image(data=EMOJI_BASE64_WEARY)],
+        vtop([
+            Frame('Platform *', frame_platforms, title_font=font_frame),
+            Frame('Type of Issue *', frame_type, title_font=font_frame),
+            Frame('Versions *', frame_versions, title_font=font_frame),
+        ])
+    ]
 
     middle_layout = [
-        [Frame('Checklist * (note that you can click the links)', [[checklist_tabgropup]], font=font_frame, key='-CLIST FRAME-', expand_x=True, expand_y=True)],
+        [Frame(
+            'Checklist * (note that you can click the links)',
+            [[checklist_tabgropup]],
+            title_font=font_frame,
+            key='-CLIST FRAME-',
+            expand_x=True,
+            expand_y=True
+        )],
         [HorizontalSeparator()],
-        [Text(SYMBOLS.DOWN + ' If you need more room for details grab the dot and drag to expand', background_color='red', text_color='white')]]
+        [Text(SYMBOLS.DOWN + ' If you need more room for details grab the dot and drag to expand', background_color='red', text_color='white')]
+    ]
 
-    bottom_layout = [[TabGroup([[Tab('Details *\n', frame_details, pad=(0, 0)),
-                                 Tab('SHORT Program\nto duplicate problem *', frame_code, pad=(0, 0)),
-                                 Tab('Your Project Details\n(optional)', frame_project_details, pad=(0, 0)),
-                                 Tab('Where you found us?\n(optional)', frame_where_you_found_psg, pad=(0, 0)),
-                                 Tab('Markdown Output\n', frame_markdown, pad=(0, 0)),
-                                 ]], key='-TABGROUP-', expand_x=True, expand_y=True),
-                      ]]
+    bottom_layout = [[TabGroup(
+        [[
+            Tab('Details *\n', frame_details, pad=(0, 0)),
+            Tab('SHORT Program\nto duplicate problem *', frame_code, pad=(0, 0)),
+            Tab('Your Project Details\n(optional)', frame_project_details, pad=(0, 0)),
+            Tab('Where you found us?\n(optional)', frame_where_you_found_psg, pad=(0, 0)),
+            Tab('Markdown Output\n', frame_markdown, pad=(0, 0)),
+        ]],
+        key='-TABGROUP-',
+        expand_x=True,
+        expand_y=True
+    )]]
 
-
-    layout_pane = Pane([Column(middle_layout), Column(bottom_layout)], key='-PANE-', expand_x=True, expand_y=True)
+    layout_pane = Pane(
+        [
+            Column(middle_layout),
+            Column(bottom_layout)
+        ],
+        key='-PANE-',
+        expand_x=True,
+        expand_y=True
+    )
 
     layout = [
-        [pin(Button(SYMBOLS.DOWN, pad=(0, 0), key='-HIDE CLIST-', tooltip='Hide/show upper sections of window')), pin(Column(top_layout, key='-TOP COL-'))],
+        [
+            pin(Button(SYMBOLS.DOWN, pad=(0, 0), key='-HIDE CLIST-', tooltip='Hide/show upper sections of window')),
+            pin(Column(top_layout, key='-TOP COL-'))
+        ],
         [layout_pane],
-        [Column([[Button('Post Issue'), Button('Create Markdown Only'), Button('Quit')]])]]
+        [
+            Column([[
+                Button('Post Issue'),
+                Button('Create Markdown Only'),
+                Button('Quit')
+            ]])
+        ]
+    ]
 
     window = Window('Open A GitHub Issue', layout, finalize=True, resizable=True, enable_close_attempted_event=True, margins=(0, 0))
 
@@ -289,8 +381,10 @@ If you've been programming for a month, the person answering your question can a
     t_exp = Tab('Experience', [[HelpText(help_experience)]])
     t_steps = Tab('Steps', [[HelpText(help_steps)]])
 
-    layout = [[TabGroup([[t_goals, t_why, t_faq, t_exp, t_steps]])],
-              [Button('Close')]]
+    layout = [
+        [TabGroup([[t_goals, t_why, t_faq, t_exp, t_steps]])],
+        [Button('Close')]
+    ]
 
     Window('GitHub Issue GUI Help', layout, keep_on_top=True).read(close=True)
 
