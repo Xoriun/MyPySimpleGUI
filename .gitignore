@@ -4,3 +4,4 @@
 !ruff.toml
 !*.py
 *Copy.py
+*test.py

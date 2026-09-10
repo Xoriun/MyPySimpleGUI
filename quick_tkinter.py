@@ -55,6 +55,8 @@ from tkinter import filedialog, ttk
 
 from PIL import ImageGrab
 
+from abc_whole_mro import ABCWholeMro
+
 # import psg_debugger  # to be removed at some point (moved into dev-kit)
 
 version = __version__ = "0.0.2"
@@ -2068,6 +2070,10 @@ class Element[widget_type: tk.Widget](ABC):
         key_dict[self._key] = self
 
     @property
+    def toplevel_form(self):
+        return self._toplevel_form
+    
+    @property
     def pad(self):
         return self._pad if self._pad is not None else self.parent_form_for_buttons.element_padding
 
@@ -2456,7 +2462,7 @@ class Element[widget_type: tk.Widget](ABC):
         return self.__getattribute__(new_name)
 
 
-class Container:
+class Container(ABCWholeMro):
     """
     Class for Elements that can contain other elements.
     
@@ -2576,10 +2582,21 @@ class Container:
             yield from row
 
     @property
+    @abstractmethod
     def toplevel_form(self) -> Window:
-        if isinstance(self, Element):
-            return self._toplevel_form
-        return self
+        """Returns the window this container is placed in."""
+
+    @property
+    @abstractmethod
+    def font(self): ...
+
+    @property
+    @abstractmethod
+    def text_color(self): ...
+
+    @property
+    @abstractmethod
+    def background_color(self): ...
 
     def _verified_row(self, row, row_number:int) -> typing.Generator[Element]:
         """
@@ -2663,7 +2680,6 @@ class Container:
                 continue
             yield row
 
-    @abstractmethod
     def _build_key_dict(self, key_dict: dict):
         """
         Loop through all Rows and all Container Elements for this window and create the keys for all of them.
