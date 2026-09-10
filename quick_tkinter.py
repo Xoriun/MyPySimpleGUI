@@ -1,4 +1,7 @@
-"""#TODO: modules docstring"""
+"""
+Copyright 2018 - 2024 <PySimpleGUI>
+          2024 - 2026 <Xoriun>
+"""
 
 
 # temporary to catch incomplete refactoring (hack to use __getattr__ from within this module)
@@ -2747,11 +2750,11 @@ class _InputElement[widget_type: tk.Widget](Element[widget_type]):
     """ Elements where the user can enter text. """
     @property
     def background_color(self):
-        return self._background_color if self._background_color is not None else DEFAULTS.INPUT_ELEMENTS_BACKGROUND_COLOR
+        return self._background_color or DEFAULTS.INPUT_ELEMENTS_BACKGROUND_COLOR
 
     @property
     def text_color(self):
-        return self._text_color if self._text_color is not None else DEFAULTS.INPUT_TEXT_COLOR
+        return self._text_color or DEFAULTS.INPUT_TEXT_COLOR
 
 
 class _InputElementReadonlyable[widget_type: tk.Widget](_InputElement[widget_type]):
@@ -7981,7 +7984,7 @@ class Tab(Container, Element[tk.Frame]):
     Tabs are never placed directly into a layout.  They are always "Contained" in a TabGroup layout
     """
 
-    def __init__(self, title, layout, *, title_color=None, disabled=False, image_source=None, image_subsample=None,
+    def __init__(self, title, layout, *, title_color=None, title_font=None, disabled=False, image_source=None, image_subsample=None,
                  image_zoom=None, **kwargs):
         """
         :param title:                 text to show on the tab
@@ -8021,8 +8024,10 @@ class Tab(Container, Element[tk.Frame]):
         self._disabled = disabled
         self.tab_id = None
         self.container_elemement_number = Window._get_a_container_number()
+        self._title_color = title_color
+        self._title_font = title_font
 
-        super().__init__(text_color=title_color, layout=layout, **kwargs)
+        super().__init__(layout=layout, **kwargs)
 
     @_ensure_widget_created
     def update(self, title=None, disabled=None, visible=None):
@@ -10861,8 +10866,8 @@ class Window(Container):
             self.location = location
         self.relative_loction = relative_location
         self.button_color = button_color_to_tuple(button_color)
-        self.background_color = background_color or DEFAULTS.BACKGROUND_COLOR
-        self.text_color = text_color or DEFAULTS.TEXT_COLOR
+        self._background_color = background_color or DEFAULTS.BACKGROUND_COLOR
+        self._text_color = text_color or DEFAULTS.TEXT_COLOR
         self.parent_window = None
         self._font = font
         self.radio_dict = {}
@@ -12203,6 +12208,14 @@ class Window(Container):
     @property
     def font(self):
         return self._font or DEFAULTS.FONT
+    
+    @property
+    def text_color(self):
+        return self._text_color
+    
+    @property
+    def background_color(self):
+        return self._background_color
 
     def is_closed(self, quick_check=None):
         """

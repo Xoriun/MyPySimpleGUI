@@ -1,3 +1,7 @@
+"""
+Copyright 2018 - 2024 <PySimpleGUI>
+          2024 - 2026 <Xoriun>
+"""
 
 import inspect
 import itertools
@@ -76,7 +80,7 @@ def main_sdk_help():
         'Window': r'https://PySimpleGUI.org/en/latest/call%20reference/#window',
     }
 
-    NOT_AN_ELEMENT = 'Not An Element'
+    _not_an_element_ = 'Not An Element'
     element_classes = list(_all_subclasses(Element))
     element_names = {element.__name__: element for element in element_classes if not element.__name__.startswith('_')}
     element_names['Window'] = Window
@@ -199,7 +203,7 @@ def main_sdk_help():
                         ml.print('\n'.join(methods))
                         ml.print('--- Properties ---', background_color='red', text_color='white')
                         ml.print('\n'.join(properties))
-                        if elem != NOT_AN_ELEMENT:
+                        if elem != _not_an_element_:
                             if issubclass(elem, Element):
                                 ml.print('Methods Unique to This Element', background_color='red', text_color='white')
                                 ml.print('\n'.join(unique_methods))

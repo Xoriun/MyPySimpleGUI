@@ -1,3 +1,7 @@
+"""
+Copyright 2018 - 2024 <PySimpleGUI>
+          2024 - 2026 <Xoriun>
+"""
 
 
 import platform
@@ -313,18 +317,18 @@ def main_open_github_issue():
 
 
 def _github_issue_post_make_github_link(title, body):
-    pysimplegui_url = "https://github.com/PySimpleGUI/PySimpleGUI"
-    pysimplegui_issues = f"{pysimplegui_url}/issues/new?"
+    repo_url = "https://github.com/Xoriun/quick_tkinter"
+    issues_url = f"{repo_url}/issues/new?"
 
     # Fix body cuz urllib can't do it smfh
     get_vars = {'title': str(title), 'body': str(body)}
-    return (pysimplegui_issues + urllib.parse.urlencode(get_vars).replace("%5Cn", "%0D"))
+    return (issues_url + urllib.parse.urlencode(get_vars).replace("%5Cn", "%0D"))
 
 
 def _github_issue_help():
     text_font = '_ 10'
 
-    def HelpText(text):
+    def _help_text(text):
         return Text(text, size=(80, None), font=text_font)
 
     help_why = \
@@ -375,11 +379,11 @@ If you've been programming for a month, the person answering your question can a
 1. Fill in the form
 2. Click Post Issue """
 
-    t_goals = Tab('Goals', [[HelpText(help_goals)]])
-    t_why = Tab('Why', [[HelpText(help_why)]])
-    t_faq = Tab('FAQ', [[HelpText(help_explain)]])
-    t_exp = Tab('Experience', [[HelpText(help_experience)]])
-    t_steps = Tab('Steps', [[HelpText(help_steps)]])
+    t_goals = Tab('Goals', [[_help_text(help_goals)]])
+    t_why = Tab('Why', [[_help_text(help_why)]])
+    t_faq = Tab('FAQ', [[_help_text(help_explain)]])
+    t_exp = Tab('Experience', [[_help_text(help_experience)]])
+    t_steps = Tab('Steps', [[_help_text(help_steps)]])
 
     layout = [
         [TabGroup([[t_goals, t_why, t_faq, t_exp, t_steps]])],
@@ -446,7 +450,7 @@ f"""
 
 ----------------------------------------
 
-## Environment 
+## Environment
 
 #### Operating System
 

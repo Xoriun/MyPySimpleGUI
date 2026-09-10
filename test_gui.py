@@ -1,3 +1,7 @@
+"""
+Copyright 2018 - 2024 <PySimpleGUI>
+          2024 - 2026 <Xoriun>
+"""
 
 import copy
 import json
@@ -277,12 +281,14 @@ def _create_main_window():
     print('tcl detailed version = ', tclversion_detailed)
     print('PySimpleGUI.py location', __file__)
     # ------ Menu Definition ------ #
-    menu_def = [['&File', ['!&Open', '&Save::savekey', '---', '&Properties', 'E&xit']],
-                ['&Edit', ['&Paste', ['Special', 'Normal', '!Disabled'], 'Undo'] ],
-                ['&Debugger', ['Popout', 'Launch Debugger']],
-                ['!&Disabled', ['Popout', 'Launch Debugger']],
-                ['&Toolbar', ['Command &1', 'Command &2', 'Command &3', 'Command &4']],
-                ['&Help', '&About...'] ]
+    menu_def = [
+        ['&File', ['!&Open', '&Save::savekey', '---', '&Properties', 'E&xit']],
+        ['&Edit', ['&Paste', ['Special', 'Normal', '!Disabled'], 'Undo'] ],
+        ['&Debugger', ['Popout', 'Launch Debugger']],
+        ['!&Disabled', ['Popout', 'Launch Debugger']],
+        ['&Toolbar', ['Command &1', 'Command &2', 'Command &3', 'Command &4']],
+        ['&Help', '&About...']
+    ]
 
     button_menu_def = ['unused', ['&Paste', ['Special', 'Normal', '!Disabled'], 'Undo', 'Exit'] ]
     treedata = TreeData()
@@ -305,10 +311,10 @@ def _create_main_window():
     ]
 
     frame2 = [
-        # [ProgressBar(100, bar_color=('red', 'green'), orientation='h')],
-
-        [Listbox([f'Listbox {i}' for i in range(1, 10)], select_mode=Listbox.SELECT_MODE_EXTENDED, size=(20, 5)),
-         Spin([1, 2, 3, 'a', 'b', 'c'], default_value='a', size=(4, 3), wrap=True)],
+        [
+            Listbox([f'Listbox {i}' for i in range(1, 10)], select_mode=Listbox.SELECT_MODE_EXTENDED, size=(20, 5)),
+            Spin([1, 2, 3, 'a', 'b', 'c'], default_value='a', size=(4, 3), wrap=True)
+        ],
         [Combo([f"Combo item {i}" for i in range(5)], size=(20, 3), default_value='Combo item 2', key='-COMBO1-' )],
         [Combo([f"Combo item {i}" for i in range(5)], size=(20, 3), font='Courier 14', default_value='Combo item 2', key='-COMBO2-' )],
         [OptionMenu([f"Option {i}" for i in range(7)], default_value='Option 2', key='-OPTIONMENU-', enable_events=False)],
@@ -316,14 +322,22 @@ def _create_main_window():
     ]
 
     frame3 = [
-        [Checkbox('Checkbox1', default_value=True, key='-CB1-'), Checkbox('Checkbox2', key='-CB2-', enable_events=True)],
-        [Radio('Radio Button1', 1, key='-R1-'), Radio('Radio Button2', 1, default_value=True, key='-R2-', tooltip='Radio 2')],
+        [
+            Checkbox('Checkbox1', default_value=True, key='-CB1-'),
+            Checkbox('Checkbox2', key='-CB2-', enable_events=True)
+        ],
+        [
+            Radio('Radio Button1', 1, key='-R1-'),
+            Radio('Radio Button2', 1, default_value=True, key='-R2-', tooltip='Radio 2')
+        ],
         [Text('', size=(1, 4))]
     ]
 
     frame4 = [
-        [Slider(range=(0, 100), orientation='v', size=(7, 15), default_value=40, key='-SLIDER1-'),
-         Slider(range=(0, 100), orientation='h', size=(11, 15), default_value=40, key='-SLIDER2-') ]
+        [
+            Slider(range=(0, 100), orientation='v', size=(7, 15), default_value=40, key='-SLIDER1-'),
+            Slider(range=(0, 100), orientation='h', size=(11, 15), default_value=40, key='-SLIDER2-')
+            ]
     ]
     matrix = [[str(x * y) for x in range(1, 5)] for y in range(1, 8)]
 
@@ -336,48 +350,96 @@ def _create_main_window():
         Tree(data=treedata, headings=['col1', 'col2', 'col3'], col_widths=[5, 5, 5, 5], enable_events=True, auto_size_columns=False, header_border_width=4,
              # header_relief=RELIEF_GROOVE,
              num_rows=8, col0_width=8, key='-TREE-', show_expanded=True )])]
-    frame7 = [[Image(data=EMOJI_BASE64.HAPPY_HEARTS, enable_events=True, key='-EMOJI-HEARTS-'), Text('Do you'), Image(data=HEART_3D_BASE64, subsample=3, enable_events=True, key='-HEART-'), Text('so far?')],
-              [Text('Want to be taught PySimpleGUI?\nThen maybe the "Official PySimpleGUI Course" on Udemy is for you.')],
-              [Button(image_data=UDEMY_ICON, enable_events=True, key='-UDEMY-'),Text('Check docs, announcements, easter eggs on this page for coupons.')],
-              [Button(image_data=ICON_BUY_ME_A_COFFEE, enable_events=True, key='-COFFEE-'), Text('It is financially draining to operate a project this huge. $1 helps')]]
+    frame7 = [
+        [
+            Image(data=EMOJI_BASE64.HAPPY_HEARTS, enable_events=True, key='-EMOJI-HEARTS-'),
+            Text('Do you'),
+            Image(data=HEART_3D_BASE64, subsample=3, enable_events=True, key='-HEART-'),
+            Text('so far?')],
+        [Text('Want to be taught PySimpleGUI?\nThen maybe the "Official PySimpleGUI Course" on Udemy is for you.')],
+        [
+            Button(image_data=UDEMY_ICON, enable_events=True, key='-UDEMY-'),
+            Text('Check docs, announcements, easter eggs on this page for coupons.')
+        ],
+        [
+            Button(image_data=ICON_BUY_ME_A_COFFEE, enable_events=True, key='-COFFEE-'),
+            Text('It is financially draining to operate a project this huge. $1 helps')
+        ]
+    ]
 
 
     pop_test_tab_layout = [
-        [Image(data=EMOJI_BASE64.HAPPY_IDEA), Text('Popup tests? Good idea!', col_span=3)],
-        [Button('Popup', key='P '), Button('Scrolled', key='P Scrolled'), Button('No Titlebar', key='P NoTitle'), Button('Not Modal', key='P NoModal'), Button('Non Blocking', key='P NoBlock'), Button('Auto Close', key='P AutoClose')],
+        [
+            Image(data=EMOJI_BASE64.HAPPY_IDEA),
+            Text('Popup tests? Good idea!', col_span=3)
+        ],
+        [
+            Button('Popup', key='P '),
+            Button('Scrolled', key='P Scrolled'),
+            Button('No Titlebar', key='P NoTitle'),
+            Button('Not Modal', key='P NoModal'),
+            Button('Non Blocking', key='P NoBlock'),
+            Button('Auto Close', key='P AutoClose')
+        ],
         [Text('Button Popups')],
-        [Button('OK', key='P ok'), Button('Cancel', key='P cancel'), Button('OK Cancel', key='P ok cancel'), Button('Yes No', key='P yes no'), Button('Error', key='P error'), Button('Custom', key='P custom')],
+        [
+            Button('OK', key='P ok'),
+            Button('Cancel', key='P cancel'),
+            Button('OK Cancel', key='P ok cancel'),
+            Button('Yes No', key='P yes no'),
+            Button('Error', key='P error'),
+            Button('Custom', key='P custom')
+        ],
         [Text('"Get" popups too!', col_span=5)],
-        [Button('Get File'), Button('Get Folder'), Button('Get Date'), Button('Get Text')]
+        [
+            Button('Get File'),
+            Button('Get Folder'),
+            Button('Get Date'),
+            Button('Get Text')
+        ]
     ]
     pop_test_tab_layout = [[Frame(title='test', layout=pop_test_tab_layout)]]
 
-    GRAPH_SIZE = (500, 200)
-    graph_elem = Graph(canvas_size=GRAPH_SIZE, graph_bottom_left=(0, 0), graph_top_right=GRAPH_SIZE, key='+GRAPH+')
+    graph_size = (500, 200)
+    graph_elem = Graph(canvas_size=graph_size, graph_bottom_left=(0, 0), graph_top_right=graph_size, key='+GRAPH+')
 
     frame6 = [[VerticalPush()],[graph_elem]]
 
-    themes_tab_layout = [[Text('You can see a preview of the themes, the color swatches, or switch themes for this window')],
-                         [Text('If you want to change the default theme for PySimpleGUI, use the Global Settings')],
-                         [Button('Themes'), Button('Theme Swatches'), Button('Switch Themes')]]
+    themes_tab_layout = [
+        [Text('You can see a preview of the themes, the color swatches, or switch themes for this window')],
+        [Text('If you want to change the default theme for PySimpleGUI, use the Global Settings')],
+        [
+            Button('Themes'),
+            Button('Theme Swatches'),
+            Button('Switch Themes')
+        ]
+    ]
 
+    upgrade_recommendation_tab_layout = [
+        [Text('Latest Recommendation and Announcements For You', font='_ 14')],
+        [
+            Text('Severity Level of Update:'),
+            Text(pysimplegui_user_settings.get('-severity level-',''))
+        ],
+        [
+            Text('Recommended Version To Upgrade To:'),
+            Text(pysimplegui_user_settings.get('-upgrade recommendation-',''))
+        ],
+        [Text(pysimplegui_user_settings.get('-upgrade message 1-',''))],
+        [Text(pysimplegui_user_settings.get('-upgrade message 2-',''))],
+        [Checkbox('Show Only Critical Messages', default_value=pysimplegui_user_settings.get('-upgrade show only critical-', False), key='-UPGRADE SHOW ONLY CRITICAL-', enable_events=True)],
+        [Button('Show Notification Again')]
+    ]
 
-    upgrade_recommendation_tab_layout = [[Text('Latest Recommendation and Announcements For You', font='_ 14')],
-                                         [Text('Severity Level of Update:'), Text(pysimplegui_user_settings.get('-severity level-',''))],
-                                         [Text('Recommended Version To Upgrade To:'), Text(pysimplegui_user_settings.get('-upgrade recommendation-',''))],
-                                         [Text(pysimplegui_user_settings.get('-upgrade message 1-',''))],
-                                         [Text(pysimplegui_user_settings.get('-upgrade message 2-',''))],
-                                         [Checkbox('Show Only Critical Messages', default_value=pysimplegui_user_settings.get('-upgrade show only critical-', False), key='-UPGRADE SHOW ONLY CRITICAL-', enable_events=True)],
-                                         [Button('Show Notification Again'),
-],
-                                         ]
     tab_upgrade = Tab('Upgrade\n', upgrade_recommendation_tab_layout,  expand_x=True)
-
 
     tab1 = Tab('Graph\n', frame6, tooltip='Graph is in here', title_color='red')
     tab2 = Tab('CB, Radio\nList, Combo',
-               [[Frame('Multiple Choice Group', frame2, title_color='#FFFFFF', tooltip='Checkboxes, radio buttons, etc', vertical_alignment='t'),
-                 Frame('Binary Choice Group', frame3, title_color='#FFFFFF', tooltip='Binary Choice', vertical_alignment='t' ) ]])
+        [[
+            Frame('Multiple Choice Group', frame2, title_color='#FFFFFF', tooltip='Checkboxes, radio buttons, etc', vertical_alignment='t'),
+            Frame('Binary Choice Group', frame3, title_color='#FFFFFF', tooltip='Binary Choice', vertical_alignment='t' )
+        ]]
+    )
     # tab3 = Tab('Table and Tree', [[Frame('Structured Data Group', frame5, title_color='red', element_justification='l')]], tooltip='tab 3', title_color='red', )
     tab3 = Tab('Table &\nTree', [[Column(frame5, element_justification='l', vertical_alignment='t')]], tooltip='tab 3', title_color='red', key='-TAB TABLE-')
     tab4 = Tab('Sliders\n', [[Frame('Variable Choice Group', frame4, title_color='blue')]], tooltip='tab 4', title_color='red', key='-TAB VAR-')
@@ -415,19 +477,30 @@ def _create_main_window():
     ], pad=0)
 
     layout_bottom = [
-        [Button(SYMBOLS.DOWN, pad=(0, 0), key='-HIDE TABS-'),
-         pin(Column(layout=[[TabGroup(layout=[[tab1, tab2, tab3, tab6, tab4, tab5, tab7, tab8, tab9, tab_upgrade]], key='-TAB_GROUP-')]], key='-TAB GROUP COL-'))],
-        [Button('Button', highlight_colors=('yellow', 'red'),pad=(1, 0)),
-         Button('ttk Button', use_ttk_buttons=True, tooltip='This is a TTK Button',pad=(1, 0)),
-         Button('See-through Mode', tooltip='Make the background transparent',pad=(1, 0)),
-         Button('Upgrade PySimpleGUI from GitHub', button_color='white on red', key='-INSTALL-',pad=(1, 0)),
-         Button('Global Settings', tooltip='Settings across all PySimpleGUI programs',pad=(1, 0)),
-         Button('Exit', tooltip='Exit button',pad=(1, 0))],
+        [
+            Button(SYMBOLS.DOWN, pad=(0, 0), key='-HIDE TABS-'),
+            pin(Column(layout=[[
+                TabGroup(layout=[[tab1, tab2, tab3, tab6, tab4, tab5, tab7, tab8, tab9, tab_upgrade]], key='-TAB_GROUP-')
+                ]],
+                key='-TAB GROUP COL-'
+            ))
+        ],
+        [
+            Button('Button', highlight_colors=('yellow', 'red'),pad=(1, 0)),
+            Button('ttk Button', use_ttk_buttons=True, tooltip='This is a TTK Button',pad=(1, 0)),
+            Button('See-through Mode', tooltip='Make the background transparent',pad=(1, 0)),
+            Button('Upgrade PySimpleGUI from GitHub', button_color='white on red', key='-INSTALL-',pad=(1, 0)),
+            Button('Global Settings', tooltip='Settings across all PySimpleGUI programs',pad=(1, 0)),
+            Button('Exit', tooltip='Exit button',pad=(1, 0))
+        ],
         # [B(image_data=ICON_BUY_ME_A_COFFEE,pad=(1, 0), key='-COFFEE-'),
-        [Button(image_data=UDEMY_ICON,pad=(1, 0), key='-UDEMY-'),
-         Button('SDK Reference', pad=(1, 0)), Button('Open GitHub Issue',pad=(1, 0)), Button('Versions for GitHub',pad=(1, 0)),
-         ButtonMenu('ButtonMenu', button_menu_def, pad=(1, 0),key='-BMENU-', tearoff=True,  disabled_text_color='yellow')
-         ]]
+        [
+            Button(image_data=UDEMY_ICON,pad=(1, 0), key='-UDEMY-'),
+            Button('SDK Reference', pad=(1, 0)), Button('Open GitHub Issue',pad=(1, 0)),
+            Button('Versions for GitHub',pad=(1, 0)),
+            ButtonMenu('ButtonMenu', button_menu_def, pad=(1, 0),key='-BMENU-', tearoff=True,  disabled_text_color='yellow')
+        ]
+    ]
 
     layout = [[]]
 
@@ -437,7 +510,10 @@ def _create_main_window():
         layout += [[MenubarCustom(menu_def, key='-MENU-', font='Courier 15', bar_background_color=theme_background_color(), bar_text_color=theme_text_color(),
                                   background_color='red', text_color='white', disabled_text_color='yellow')]]
 
-    layout += [[layout_top, ProgressBar(max_value=800, size=(20, 25), orientation='v', key='+PROGRESS+')]]
+    layout += [[
+        layout_top,
+        ProgressBar(max_value=800, size=(20, 25), orientation='v', key='+PROGRESS+')
+    ]]
     layout += layout_bottom
 
     window = Window('PySimpleGUI Main Test Harness', layout, #layout_type=Window.GRID,
@@ -553,8 +629,7 @@ def theme_previewer(*, columns=12, scrollable=False, scroll_area_size=(None, Non
 def _main_switch_theme():
     layout = [
         [Text('Click a look and feel color to see demo window')],
-        [Listbox(values=theme_list(),
-                 size=(20, 20), key='-LIST-')],
+        [Listbox(values=theme_list(), size=(20, 20), key='-LIST-')],
         [Button('Choose'), Button('Cancel')]]
 
     window = Window('Change Themes', layout)
@@ -660,7 +735,8 @@ def main_global_pysimplegui_settings():
             [Text('Normally leave this blank')],
             [
                 Text('Command to run a python program:'),
-                Input(settings.get('-python command-', ''), key='-PYTHON COMMAND-', enable_events=True), FileBrowse()
+                Input(settings.get('-python command-', ''), key='-PYTHON COMMAND-', enable_events=True),
+                FileBrowse()
             ]
         ],
         title_font='_ 16',

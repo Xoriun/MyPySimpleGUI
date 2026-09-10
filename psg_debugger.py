@@ -1,4 +1,7 @@
-
+"""
+Copyright 2018 - 2024 <PySimpleGUI>
+          2024 - 2026 <Xoriun>
+"""
 
 import inspect
 import sys

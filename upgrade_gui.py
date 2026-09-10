@@ -1,3 +1,7 @@
+"""
+Copyright 2018 - 2024 <PySimpleGUI>
+          2024 - 2026 <Xoriun>
+"""
 
 import json
 import os
@@ -119,6 +123,9 @@ def __show_previous_upgrade_information():
 
 def _copy_files_from_github():
     """Update the local PySimpleGUI installation from Github"""
+    package_version = "Unknown"
+    popup('Attempting to run the github-updater.', 'Since this is still old PSG code, the update will now exit.')
+    return package_version
 
     github_url = 'https://raw.githubusercontent.com/PySimpleGUI/PySimpleGUI/master/'
     #files = ["PySimpleGUI.py", "setup.py"]
@@ -144,7 +151,6 @@ def _copy_files_from_github():
     with open(os.path.join(path, files[0]), encoding='utf-8') as f:
         text_data = f.read()
 
-    package_version = "Unknown"
     match = re.search(r'__version__ = \"([\d\.]+)', text_data)
     if match:
         package_version = match.group(1)
